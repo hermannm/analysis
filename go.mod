@@ -4,6 +4,7 @@ go 1.21.0
 
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.13.4
+	github.com/joho/godotenv v1.5.1
 	hermannm.dev/wrap v0.2.0
 )
 

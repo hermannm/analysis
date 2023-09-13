@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/joho/godotenv"
 	"hermannm.dev/analysis/api"
 	"hermannm.dev/analysis/db"
 	"hermannm.dev/wrap"
@@ -29,6 +30,11 @@ type Config struct {
 }
 
 func readConfigFromEnv() (Config, error) {
+	err := godotenv.Load()
+	if err != nil {
+		return Config{}, wrap.Error(err, "failed to load .env file")
+	}
+
 	var config Config
 	var missingEnvs []error
 
