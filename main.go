@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -17,16 +18,21 @@ func main() {
 		log.Fatalln(wrap.Error(err, "failed to read config from env"))
 	}
 
-	db, err := db.NewAnalysisDatabase(config.clickhouse)
+	db, err := db.NewAnalysisDatabase(config.ClickHouse)
 	if err != nil {
 		log.Fatalln(wrap.Error(err, "failed to initialize database"))
 	}
 
-	api.NewAnalysisAPI(db)
+	analysisAPI := api.NewAnalysisAPI(db, http.DefaultServeMux, config.API)
+
+	if err := analysisAPI.ListenAndServe(); err != nil {
+		log.Fatalln(wrap.Error(err, "server stopped"))
+	}
 }
 
 type Config struct {
-	clickhouse db.ClickHouseConfig
+	API        api.Config
+	ClickHouse db.ClickHouseConfig
 }
 
 func readConfigFromEnv() (Config, error) {
@@ -42,10 +48,11 @@ func readConfigFromEnv() (Config, error) {
 		name  string
 		field *string
 	}{
-		{"CLICKHOUSE_ADDRESS", &config.clickhouse.Address},
-		{"CLICKHOUSE_DB_NAME", &config.clickhouse.Database},
-		{"CLICKHOUSE_USERNAME", &config.clickhouse.Username},
-		{"CLICKHOUSE_PASSWORD", &config.clickhouse.Password},
+		{"API_PORT", &config.API.Port},
+		{"CLICKHOUSE_ADDRESS", &config.ClickHouse.Address},
+		{"CLICKHOUSE_DB_NAME", &config.ClickHouse.Database},
+		{"CLICKHOUSE_USERNAME", &config.ClickHouse.Username},
+		{"CLICKHOUSE_PASSWORD", &config.ClickHouse.Password},
 	} {
 		if envValue, isSet := os.LookupEnv(env.name); isSet {
 			*env.field = envValue
