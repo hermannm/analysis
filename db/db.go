@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 
@@ -20,13 +21,13 @@ type ClickHouseConfig struct {
 	Password string
 }
 
-func NewAnalysisDatabase(env ClickHouseConfig) (AnalysisDatabase, error) {
+func NewAnalysisDatabase(config ClickHouseConfig) (AnalysisDatabase, error) {
 	conn, err := clickhouse.Open(&clickhouse.Options{
-		Addr: []string{env.Address},
+		Addr: []string{config.Address},
 		Auth: clickhouse.Auth{
-			Database: env.Database,
-			Username: env.Username,
-			Password: env.Password,
+			Database: config.Database,
+			Username: config.Username,
+			Password: config.Password,
 		},
 		Debugf: func(format string, v ...any) {
 			fmt.Printf(format, v...)
@@ -37,6 +38,10 @@ func NewAnalysisDatabase(env ClickHouseConfig) (AnalysisDatabase, error) {
 	})
 	if err != nil {
 		return AnalysisDatabase{}, wrap.Error(err, "failed to connect to ClickHouse")
+	}
+
+	if err := conn.Ping(context.Background()); err != nil {
+		return AnalysisDatabase{}, wrap.Error(err, "failed to ping ClickHouse connection")
 	}
 
 	return AnalysisDatabase{clickhouse: conn}, nil
