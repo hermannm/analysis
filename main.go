@@ -50,7 +50,7 @@ func readConfigFromEnv() (Config, error) {
 	}{
 		{"API_PORT", &config.API.Port},
 		{"CLICKHOUSE_ADDRESS", &config.ClickHouse.Address},
-		{"CLICKHOUSE_DB_NAME", &config.ClickHouse.Database},
+		{"CLICKHOUSE_DB_NAME", &config.ClickHouse.DatabaseName},
 		{"CLICKHOUSE_USERNAME", &config.ClickHouse.Username},
 		{"CLICKHOUSE_PASSWORD", &config.ClickHouse.Password},
 	} {
