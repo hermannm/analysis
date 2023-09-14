@@ -19,6 +19,7 @@ type ClickHouseConfig struct {
 	Database string
 	Username string
 	Password string
+	Debug    bool
 }
 
 func NewAnalysisDatabase(config ClickHouseConfig) (AnalysisDatabase, error) {
@@ -29,6 +30,7 @@ func NewAnalysisDatabase(config ClickHouseConfig) (AnalysisDatabase, error) {
 			Username: config.Username,
 			Password: config.Password,
 		},
+		Debug: config.Debug,
 		Debugf: func(format string, v ...any) {
 			fmt.Printf(format, v...)
 		},

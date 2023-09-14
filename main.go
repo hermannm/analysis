@@ -42,7 +42,7 @@ func readConfigFromEnv() (Config, error) {
 	}
 
 	var config Config
-	var missingEnvs []error
+	var errs []error
 
 	for _, env := range []struct {
 		name  string
@@ -57,12 +57,34 @@ func readConfigFromEnv() (Config, error) {
 		if envValue, isSet := os.LookupEnv(env.name); isSet {
 			*env.field = envValue
 		} else {
-			missingEnvs = append(missingEnvs, fmt.Errorf("%s missing", env.name))
+			errs = append(errs, fmt.Errorf("%s missing", env.name))
 		}
 	}
 
-	if len(missingEnvs) != 0 {
-		return Config{}, wrap.Errors("missing environment variables", missingEnvs...)
+	for _, env := range []struct {
+		name  string
+		field *bool
+	}{
+		{"CLICKHOUSE_DEBUG_ENABLED", &config.ClickHouse.Debug},
+	} {
+		if envValue, isSet := os.LookupEnv(env.name); isSet {
+			switch envValue {
+			case "true":
+				*env.field = true
+			case "false":
+				*env.field = false
+			default:
+				errs = append(
+					errs, fmt.Errorf("invalid value for %s (must be 'true'/'false')", env.name),
+				)
+			}
+		} else {
+			errs = append(errs, fmt.Errorf("%s missing", env.name))
+		}
+	}
+
+	if len(errs) != 0 {
+		return Config{}, wrap.Errors("invalid environment variables", errs...)
 	}
 
 	return config, nil
