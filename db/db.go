@@ -50,14 +50,14 @@ func NewAnalysisDatabase(config ClickHouseConfig) (AnalysisDatabase, error) {
 	return AnalysisDatabase{conn: conn}, nil
 }
 
-func (db AnalysisDatabase) CreateTableFromCSV(
-	ctx context.Context, file io.Reader,
-) (tableName string, err error) {
-	return "", nil
+func (db AnalysisDatabase) CreateTableSchemaFromCSV(
+	ctx context.Context, table string, file io.Reader,
+) error {
+	return nil
 }
 
-func (db AnalysisDatabase) UpdateTableWithCSV(
-	ctx context.Context, file io.Reader, table string,
+func (db AnalysisDatabase) UpdateTableDataWithCSV(
+	ctx context.Context, table string, file io.Reader,
 ) error {
 	return nil
 }
