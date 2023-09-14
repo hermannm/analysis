@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"io"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
@@ -10,7 +11,7 @@ import (
 )
 
 type AnalysisDatabase struct {
-	clickhouse driver.Conn
+	conn driver.Conn
 }
 
 type ClickHouseConfig struct {
@@ -46,5 +47,17 @@ func NewAnalysisDatabase(config ClickHouseConfig) (AnalysisDatabase, error) {
 		return AnalysisDatabase{}, wrap.Error(err, "failed to ping ClickHouse connection")
 	}
 
-	return AnalysisDatabase{clickhouse: conn}, nil
+	return AnalysisDatabase{conn: conn}, nil
+}
+
+func (db AnalysisDatabase) CreateTableFromCSV(
+	ctx context.Context, file io.Reader,
+) (tableName string, err error) {
+	return "", nil
+}
+
+func (db AnalysisDatabase) UpdateTableWithCSV(
+	ctx context.Context, file io.Reader, table string,
+) error {
+	return nil
 }
