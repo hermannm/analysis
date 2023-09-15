@@ -60,5 +60,10 @@ func (db AnalysisDatabase) CreateTableSchema(
 func (db AnalysisDatabase) UpdateTableWithCSV(
 	ctx context.Context, table string, csvReader *csv.Reader,
 ) error {
+	// Skips header row, as we are only interested in data fields here
+	if _, err := csvReader.ReadHeaderRow(); err != nil {
+		return wrap.Error(err, "failed to skip CSV header row")
+	}
+
 	return nil
 }

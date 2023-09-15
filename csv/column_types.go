@@ -14,14 +14,14 @@ import (
 func (reader *Reader) DeduceColumnTypes(maxRowsToCheck int) (columns []column.Column, err error) {
 	// Resets reader position in file before returning, so its data can be read subsequently
 	defer func() {
-		if resetErr := reader.setPositionToAfterHeaderRow(); resetErr != nil {
+		if resetErr := reader.ResetReadPosition(); resetErr != nil {
 			err = wrap.Error(resetErr, "failed to reset CSV file after parsing its column types")
 		}
 	}()
 
 	columns, err = reader.parseColumnNames()
 	if err != nil {
-		return nil, wrap.Error(err, "failed to parse CSV column names")
+		return nil, wrap.Error(err, "failed to parse column names")
 	}
 
 	for {
@@ -47,14 +47,8 @@ func (reader *Reader) DeduceColumnTypes(maxRowsToCheck int) (columns []column.Co
 	return columns, nil
 }
 
-func (reader Reader) parseColumnNames() ([]column.Column, error) {
-	headers, finished, err := reader.ReadRow()
-	if reader.CurrentRow() != 1 {
-		return nil, errors.New("tried to read column names after first row")
-	}
-	if finished {
-		return nil, errors.New("csv file ended before getting to parse column names")
-	}
+func (reader *Reader) parseColumnNames() ([]column.Column, error) {
+	headers, err := reader.ReadHeaderRow()
 	if err != nil {
 		return nil, wrap.Error(err, "failed to read CSV header row")
 	}

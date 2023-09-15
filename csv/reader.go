@@ -4,8 +4,6 @@ import (
 	"encoding/csv"
 	"errors"
 	"io"
-
-	"hermannm.dev/wrap"
 )
 
 type Reader struct {
@@ -42,19 +40,29 @@ func (reader *Reader) ReadRow() (row []string, finished bool, err error) {
 	return row, false, nil
 }
 
+func (reader *Reader) ReadHeaderRow() (row []string, err error) {
+	row, finished, err := reader.ReadRow()
+	if reader.CurrentRow() != 1 {
+		return nil, errors.New("tried to read header row after reading previous rows")
+	}
+	if finished {
+		return nil, errors.New("csv file ended before header row")
+	}
+	if err != nil {
+		return nil, err
+	}
+	return row, nil
+}
+
 func (reader Reader) CurrentRow() int {
 	return reader.currentRow
 }
 
-func (reader *Reader) setPositionToAfterHeaderRow() error {
+func (reader *Reader) ResetReadPosition() error {
 	if _, err := reader.file.Seek(0, io.SeekStart); err != nil {
-		return wrap.Error(err, "failed to seek to start of file")
+		return err
 	}
 
-	if _, err := reader.inner.Read(); err != nil {
-		return wrap.Error(err, "failed to read to row after header")
-	}
-
-	reader.currentRow = 1
+	reader.currentRow = 0
 	return nil
 }
