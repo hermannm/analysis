@@ -20,8 +20,8 @@ type Config struct {
 func NewAnalysisAPI(db db.AnalysisDatabase, router *http.ServeMux, config Config) AnalysisAPI {
 	api := AnalysisAPI{db: db, router: router, config: config}
 
-	api.router.HandleFunc("create-from-csv", api.CreateTableFromCSV)
-	api.router.HandleFunc("update-with-csv", api.UpdateTableDataWithCSV)
+	api.router.HandleFunc("create-table-from-csv", api.CreateTableFromCSV)
+	api.router.HandleFunc("update-table-with-csv", api.UpdateTableWithCSV)
 
 	return api
 }
@@ -52,7 +52,7 @@ func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Req
 		return
 	}
 
-	if err := api.db.UpdateTableDataWithCSV(req.Context(), table, file); err != nil {
+	if err := api.db.UpdateTableWithCSV(req.Context(), table, file); err != nil {
 		sendError(
 			"failed to insert CSV data after creating table", http.StatusInternalServerError, err, res,
 		)
@@ -61,7 +61,7 @@ func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Req
 }
 
 // Endpoint for uploading CSV data to an existing table.
-func (api AnalysisAPI) UpdateTableDataWithCSV(res http.ResponseWriter, req *http.Request) {
+func (api AnalysisAPI) UpdateTableWithCSV(res http.ResponseWriter, req *http.Request) {
 	file, _, err := req.FormFile("upload")
 	if err != nil {
 		sendError("failed to get file upload from request", http.StatusBadRequest, err, res)
@@ -75,7 +75,7 @@ func (api AnalysisAPI) UpdateTableDataWithCSV(res http.ResponseWriter, req *http
 		return
 	}
 
-	if err := api.db.UpdateTableDataWithCSV(req.Context(), table, file); err != nil {
+	if err := api.db.UpdateTableWithCSV(req.Context(), table, file); err != nil {
 		sendError(
 			"failed to update table with uploaded CSV", http.StatusInternalServerError, err, res,
 		)
