@@ -52,7 +52,16 @@ func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Req
 		return
 	}
 
-	if err := api.db.CreateTableSchemaFromCSV(req.Context(), table, reader); err != nil {
+	columns, err := reader.DeduceColumnTypes(100)
+	if err != nil {
+		sendError(
+			"failed to deduce column data types from uploaded CSV",
+			http.StatusInternalServerError, err, res,
+		)
+		return
+	}
+
+	if err := api.db.CreateTableSchema(req.Context(), table, columns); err != nil {
 		sendError(
 			"failed to create table from uploaded CSV", http.StatusInternalServerError, err, res,
 		)

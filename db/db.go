@@ -6,6 +6,7 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
+	"hermannm.dev/analysis/column"
 	"hermannm.dev/analysis/csv"
 	"hermannm.dev/wrap"
 )
@@ -50,14 +51,9 @@ func NewAnalysisDatabase(config ClickHouseConfig) (AnalysisDatabase, error) {
 	return AnalysisDatabase{conn: conn}, nil
 }
 
-func (db AnalysisDatabase) CreateTableSchemaFromCSV(
-	ctx context.Context, table string, csvReader *csv.Reader,
+func (db AnalysisDatabase) CreateTableSchema(
+	ctx context.Context, tableName string, columns []column.Column,
 ) error {
-	_, err := csvReader.DeduceColumnTypes(100)
-	if err != nil {
-		return wrap.Error(err, "CSV column type deduction failed")
-	}
-
 	return nil
 }
 
