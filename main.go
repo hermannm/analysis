@@ -13,11 +13,13 @@ import (
 )
 
 func main() {
+	log.Println("Loading environment variables...")
 	config, err := readConfigFromEnv()
 	if err != nil {
 		log.Fatalln(wrap.Error(err, "failed to read config from env"))
 	}
 
+	log.Println("Connecting to ClickHouse...")
 	db, err := db.NewAnalysisDatabase(config.ClickHouse)
 	if err != nil {
 		log.Fatalln(wrap.Error(err, "failed to initialize database"))
@@ -25,6 +27,7 @@ func main() {
 
 	analysisAPI := api.NewAnalysisAPI(db, http.DefaultServeMux, config.API)
 
+	log.Printf("Listening on port %s...", config.API.Port)
 	if err := analysisAPI.ListenAndServe(); err != nil {
 		log.Fatalln(wrap.Error(err, "server stopped"))
 	}

@@ -2,7 +2,7 @@ package api
 
 import (
 	"encoding/json"
-	"log/slog"
+	"log"
 	"net/http"
 
 	"hermannm.dev/wrap"
@@ -17,7 +17,7 @@ func sendError(message string, statusCode int, err error, res http.ResponseWrite
 		}
 	}
 
-	slog.Error(message)
+	log.Println(message)
 	http.Error(res, message, statusCode)
 }
 
