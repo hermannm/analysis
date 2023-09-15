@@ -3,10 +3,10 @@ package db
 import (
 	"context"
 	"fmt"
-	"io"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
+	"hermannm.dev/analysis/csv"
 	"hermannm.dev/wrap"
 )
 
@@ -51,13 +51,18 @@ func NewAnalysisDatabase(config ClickHouseConfig) (AnalysisDatabase, error) {
 }
 
 func (db AnalysisDatabase) CreateTableSchemaFromCSV(
-	ctx context.Context, table string, file io.Reader,
+	ctx context.Context, table string, csvReader *csv.Reader,
 ) error {
+	_, err := csvReader.DeduceColumnTypes(100)
+	if err != nil {
+		return wrap.Error(err, "CSV column type deduction failed")
+	}
+
 	return nil
 }
 
-func (db AnalysisDatabase) UpdateTableDataWithCSV(
-	ctx context.Context, table string, file io.Reader,
+func (db AnalysisDatabase) UpdateTableWithCSV(
+	ctx context.Context, table string, csvReader *csv.Reader,
 ) error {
 	return nil
 }

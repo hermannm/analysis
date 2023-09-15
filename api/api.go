@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"hermannm.dev/analysis/csv"
 	"hermannm.dev/analysis/db"
 )
 
@@ -32,12 +33,12 @@ func (api AnalysisAPI) ListenAndServe() error {
 
 // Endpointing for creating a new table from an uploaded CSV file.
 func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Request) {
-	file, _, err := req.FormFile("upload")
+	csvFile, _, err := req.FormFile("upload")
 	if err != nil {
 		sendError("failed to get file upload from request", http.StatusBadRequest, err, res)
 		return
 	}
-	defer file.Close()
+	defer csvFile.Close()
 
 	table := req.URL.Query().Get("table")
 	if table == "" {
@@ -45,16 +46,23 @@ func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Req
 		return
 	}
 
-	if err := api.db.CreateTableSchemaFromCSV(req.Context(), table, file); err != nil {
+	reader, err := csv.NewReader(csvFile)
+	if err != nil {
+		sendError("failed to read uploaded CSV file", http.StatusInternalServerError, err, res)
+		return
+	}
+
+	if err := api.db.CreateTableSchemaFromCSV(req.Context(), table, reader); err != nil {
 		sendError(
 			"failed to create table from uploaded CSV", http.StatusInternalServerError, err, res,
 		)
 		return
 	}
 
-	if err := api.db.UpdateTableWithCSV(req.Context(), table, file); err != nil {
+	if err := api.db.UpdateTableWithCSV(req.Context(), table, reader); err != nil {
 		sendError(
-			"failed to insert CSV data after creating table", http.StatusInternalServerError, err, res,
+			"failed to insert CSV data after creating table",
+			http.StatusInternalServerError, err, res,
 		)
 		return
 	}
@@ -62,12 +70,12 @@ func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Req
 
 // Endpoint for uploading CSV data to an existing table.
 func (api AnalysisAPI) UpdateTableWithCSV(res http.ResponseWriter, req *http.Request) {
-	file, _, err := req.FormFile("upload")
+	csvFile, _, err := req.FormFile("upload")
 	if err != nil {
 		sendError("failed to get file upload from request", http.StatusBadRequest, err, res)
 		return
 	}
-	defer file.Close()
+	defer csvFile.Close()
 
 	table := req.URL.Query().Get("table")
 	if table == "" {
@@ -75,7 +83,13 @@ func (api AnalysisAPI) UpdateTableWithCSV(res http.ResponseWriter, req *http.Req
 		return
 	}
 
-	if err := api.db.UpdateTableWithCSV(req.Context(), table, file); err != nil {
+	reader, err := csv.NewReader(csvFile)
+	if err != nil {
+		sendError("failed to read uploaded CSV file", http.StatusInternalServerError, err, res)
+		return
+	}
+
+	if err := api.db.UpdateTableWithCSV(req.Context(), table, reader); err != nil {
 		sendError(
 			"failed to update table with uploaded CSV", http.StatusInternalServerError, err, res,
 		)

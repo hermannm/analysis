@@ -1,4 +1,4 @@
-package csvparsing
+package csv
 
 import (
 	"bufio"
