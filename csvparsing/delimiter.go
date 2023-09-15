@@ -3,15 +3,14 @@ package csvparsing
 import (
 	"bufio"
 	"io"
-
-	"hermannm.dev/wrap"
 )
 
 var DefaultDelimitersToCheck = []rune{',', ';', '\t', ' ', '|'}
 
-func DeduceFieldDelimiter(
-	csvFile io.ReadSeeker, maxRowsToCheck int, delimitersToCheck []rune,
-) (rune, error) {
+func DeduceFieldDelimiter(csvFile io.ReadSeeker, maxRowsToCheck int, delimitersToCheck []rune) rune {
+	// Resets reader position in file before returning, so its data can be read subsequently
+	defer csvFile.Seek(0, io.SeekStart)
+
 	if len(delimitersToCheck) == 0 {
 		delimitersToCheck = DefaultDelimitersToCheck
 	}
@@ -28,16 +27,7 @@ func DeduceFieldDelimiter(
 		}
 	}
 
-	bestCandidate := candidates.getBestCandidate()
-
-	// Resets reader position in file, so its data can be read subsequently
-	if _, err := csvFile.Seek(0, io.SeekStart); err != nil {
-		return bestCandidate, wrap.Error(
-			err, "failed to reset CSV file after deducing field delimiter from it",
-		)
-	}
-
-	return bestCandidate, nil
+	return candidates.getBestCandidate()
 }
 
 type delimiterCandidate struct {
