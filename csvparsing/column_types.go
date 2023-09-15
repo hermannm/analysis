@@ -25,7 +25,7 @@ type Column struct {
 	Optional bool
 }
 
-func ParseCSVColumnTypes(csvFile io.ReadSeeker, fieldDelimiter rune) ([]Column, error) {
+func DeduceColumnTypes(csvFile io.ReadSeeker, fieldDelimiter rune) ([]Column, error) {
 	parser := newCSVColumnTypeParser(csvFile, fieldDelimiter)
 
 	if err := parser.parseColumnNames(); err != nil {
