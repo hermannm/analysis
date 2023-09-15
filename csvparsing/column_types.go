@@ -28,9 +28,13 @@ type Column struct {
 
 func DeduceColumnTypes(
 	csvFile io.ReadSeeker, fieldDelimiter rune, maxRowsToCheck int,
-) ([]Column, error) {
+) (columns []Column, err error) {
 	// Resets reader position in file before returning, so its data can be read subsequently
-	defer csvFile.Seek(0, io.SeekStart)
+	defer func() {
+		if _, seekErr := csvFile.Seek(0, io.SeekStart); seekErr != nil {
+			err = wrap.Error(err, "failed to reset CSV file after parsing its column types")
+		}
+	}()
 
 	parser := newColumnTypeParser(csvFile, fieldDelimiter, maxRowsToCheck)
 
