@@ -4,6 +4,7 @@ go 1.21.0
 
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.13.4
+	github.com/google/uuid v1.3.1
 	github.com/joho/godotenv v1.5.1
 	hermannm.dev/wrap v0.2.0
 )
@@ -13,7 +14,6 @@ require (
 	github.com/andybalholm/brotli v1.0.5 // indirect
 	github.com/go-faster/city v1.0.1 // indirect
 	github.com/go-faster/errors v0.6.1 // indirect
-	github.com/google/uuid v1.3.1 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/paulmach/orb v0.10.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.18 // indirect

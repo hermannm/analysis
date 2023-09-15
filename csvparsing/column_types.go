@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/google/uuid"
 	"hermannm.dev/wrap"
 )
 
@@ -18,6 +19,7 @@ const (
 	ColumnTypeInt       ColumnType = "Integer"
 	ColumnTypeFloat     ColumnType = "Float"
 	ColumnTypeTimestamp ColumnType = "Timestamp"
+	ColumnTypeUUID      ColumnType = "UUID"
 )
 
 type Column struct {
@@ -153,19 +155,18 @@ func deduceColumnTypeFromField(field string) (deducedType ColumnType, isBlank bo
 	if field == "" {
 		return "", true
 	}
-
 	if _, err := strconv.ParseInt(field, 10, 64); err == nil {
 		return ColumnTypeInt, false
 	}
-
 	if _, err := strconv.ParseFloat(field, 64); err == nil {
 		return ColumnTypeFloat, false
 	}
-
 	if _, err := time.Parse(time.RFC3339, field); err == nil {
 		return ColumnTypeTimestamp, false
 	}
-
+	if _, err := uuid.Parse(field); err == nil {
+		return ColumnTypeUUID, false
+	}
 	return ColumnTypeString, false
 }
 
