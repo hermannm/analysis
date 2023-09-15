@@ -20,8 +20,8 @@ type Config struct {
 func NewAnalysisAPI(db db.AnalysisDatabase, router *http.ServeMux, config Config) AnalysisAPI {
 	api := AnalysisAPI{db: db, router: router, config: config}
 
-	api.router.HandleFunc("create-table-from-csv", api.CreateTableFromCSV)
-	api.router.HandleFunc("update-table-with-csv", api.UpdateTableWithCSV)
+	api.router.HandleFunc("/create-table-from-csv", api.CreateTableFromCSV)
+	api.router.HandleFunc("/update-table-with-csv", api.UpdateTableWithCSV)
 
 	return api
 }
