@@ -15,7 +15,7 @@ func DeduceFieldDelimiter(
 	// Resets reader position in file before returning, so its data can be read subsequently
 	defer func() {
 		if _, seekErr := csvFile.Seek(0, io.SeekStart); seekErr != nil {
-			err = wrap.Error(err, "failed to reset CSV reader after deducing field delimiter")
+			err = wrap.Error(seekErr, "failed to reset CSV reader after deducing field delimiter")
 		}
 	}()
 

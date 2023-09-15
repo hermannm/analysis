@@ -40,19 +40,19 @@ func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Req
 	}
 	defer csvFile.Close()
 
-	table := req.URL.Query().Get("table")
-	if table == "" {
+	tableName := req.URL.Query().Get("table")
+	if tableName == "" {
 		sendError("missing query parameter 'table'", http.StatusBadRequest, err, res)
 		return
 	}
 
-	reader, err := csv.NewReader(csvFile)
+	csvReader, err := csv.NewReader(csvFile)
 	if err != nil {
 		sendError("failed to read uploaded CSV file", http.StatusInternalServerError, err, res)
 		return
 	}
 
-	columns, err := reader.DeduceColumnTypes(100)
+	columns, err := csvReader.DeduceColumnTypes(100)
 	if err != nil {
 		sendError(
 			"failed to deduce column data types from uploaded CSV",
@@ -61,14 +61,14 @@ func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Req
 		return
 	}
 
-	if err := api.db.CreateTableSchema(req.Context(), table, columns); err != nil {
+	if err := api.db.CreateTableSchema(req.Context(), tableName, columns); err != nil {
 		sendError(
 			"failed to create table from uploaded CSV", http.StatusInternalServerError, err, res,
 		)
 		return
 	}
 
-	if err := api.db.UpdateTableWithCSV(req.Context(), table, reader); err != nil {
+	if err := api.db.UpdateTableWithCSV(req.Context(), tableName, csvReader); err != nil {
 		sendError(
 			"failed to insert CSV data after creating table",
 			http.StatusInternalServerError, err, res,
@@ -86,19 +86,19 @@ func (api AnalysisAPI) UpdateTableWithCSV(res http.ResponseWriter, req *http.Req
 	}
 	defer csvFile.Close()
 
-	table := req.URL.Query().Get("table")
-	if table == "" {
+	tableName := req.URL.Query().Get("table")
+	if tableName == "" {
 		sendError("missing query parameter 'table'", http.StatusBadRequest, err, res)
 		return
 	}
 
-	reader, err := csv.NewReader(csvFile)
+	csvReader, err := csv.NewReader(csvFile)
 	if err != nil {
 		sendError("failed to read uploaded CSV file", http.StatusInternalServerError, err, res)
 		return
 	}
 
-	if err := api.db.UpdateTableWithCSV(req.Context(), table, reader); err != nil {
+	if err := api.db.UpdateTableWithCSV(req.Context(), tableName, csvReader); err != nil {
 		sendError(
 			"failed to update table with uploaded CSV", http.StatusInternalServerError, err, res,
 		)

@@ -14,7 +14,7 @@ import (
 func (reader *Reader) DeduceColumnTypes(maxRowsToCheck int) (columns []column.Column, err error) {
 	// Resets reader position in file before returning, so its data can be read subsequently
 	defer func() {
-		if resetErr := reader.ResetPosition(); resetErr != nil {
+		if resetErr := reader.setPositionToAfterHeaderRow(); resetErr != nil {
 			err = wrap.Error(resetErr, "failed to reset CSV file after parsing its column types")
 		}
 	}()
