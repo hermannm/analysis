@@ -26,7 +26,7 @@ func (reader *Reader) DeduceColumnTypes(maxRowsToCheck int) (columns []column.Co
 
 	for {
 		row, finished, err := reader.ReadRow()
-		if finished {
+		if finished || reader.CurrentRow() > maxRowsToCheck {
 			break
 		}
 		if err != nil {
