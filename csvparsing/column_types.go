@@ -42,7 +42,11 @@ func DeduceColumnTypes(
 		return nil, wrap.Error(err, "failed to parse CSV column names")
 	}
 
-	for row, finished, err := parser.readRow(); !finished; {
+	for {
+		row, finished, err := parser.readRow()
+		if finished {
+			break
+		}
 		if err != nil {
 			return nil, wrap.Errorf(err, "failed to read row %d of CSV file", parser.currentRow)
 		}
