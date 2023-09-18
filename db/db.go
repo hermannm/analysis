@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
@@ -54,6 +55,46 @@ func NewAnalysisDatabase(config ClickHouseConfig) (AnalysisDatabase, error) {
 func (db AnalysisDatabase) CreateTableSchema(
 	ctx context.Context, tableName string, columns []column.Column,
 ) error {
+	var query strings.Builder
+
+	query.WriteString("CREATE TABLE ")
+	if err := writeIdentifier(&query, tableName); err != nil {
+		return wrap.Error(err, "invalid table name")
+	}
+	query.WriteString(" (`id` UUID, ")
+
+	for i, column := range columns {
+		dataType, err := columnTypeToClickHouse(column.DataType)
+		if err != nil {
+			return wrap.Errorf(
+				err, "failed to get ClickHouse data type for column '%s'", column.Name,
+			)
+		}
+
+		if err := writeIdentifier(&query, column.Name); err != nil {
+			return wrap.Error(err, "invalid column name")
+		}
+		query.WriteRune(' ')
+		query.WriteString(dataType)
+
+		if column.Optional {
+			query.WriteString(" NULL")
+		}
+
+		if i != len(columns)-1 {
+			query.WriteString(", ")
+		}
+	}
+	query.WriteRune(')')
+	query.WriteString(" ENGINE = MergeTree()")
+	query.WriteString(" PRIMARY KEY (id)")
+
+	fmt.Println(query.String())
+
+	if err := db.conn.Exec(ctx, query.String()); err != nil {
+		return wrap.Error(err, "create table query failed")
+	}
+
 	return nil
 }
 
