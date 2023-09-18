@@ -7,8 +7,8 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
-	"hermannm.dev/analysis/column"
 	"hermannm.dev/analysis/csv"
+	"hermannm.dev/analysis/datatypes"
 	"hermannm.dev/wrap"
 )
 
@@ -53,7 +53,7 @@ func NewAnalysisDatabase(config ClickHouseConfig) (AnalysisDatabase, error) {
 }
 
 func (db AnalysisDatabase) CreateTableSchema(
-	ctx context.Context, tableName string, columns []column.Column,
+	ctx context.Context, tableName string, schema datatypes.Schema,
 ) error {
 	var query strings.Builder
 
@@ -63,7 +63,7 @@ func (db AnalysisDatabase) CreateTableSchema(
 	}
 	query.WriteString(" (`id` UUID, ")
 
-	for i, column := range columns {
+	for i, column := range schema.Columns {
 		dataType, err := columnTypeToClickHouse(column.DataType)
 		if err != nil {
 			return wrap.Errorf(
@@ -81,7 +81,7 @@ func (db AnalysisDatabase) CreateTableSchema(
 			query.WriteString(" NULL")
 		}
 
-		if i != len(columns)-1 {
+		if i != len(schema.Columns)-1 {
 			query.WriteString(", ")
 		}
 	}
@@ -98,12 +98,58 @@ func (db AnalysisDatabase) CreateTableSchema(
 	return nil
 }
 
+const BatchInsertSize = 1000
+
 func (db AnalysisDatabase) UpdateTableWithCSV(
-	ctx context.Context, table string, csvReader *csv.Reader,
+	ctx context.Context, tableName string, schema datatypes.Schema, csvReader *csv.Reader,
 ) error {
 	// Skips header row, as we are only interested in data fields here
 	if _, err := csvReader.ReadHeaderRow(); err != nil {
 		return wrap.Error(err, "failed to skip CSV header row")
+	}
+
+	var query strings.Builder
+	query.WriteString("INSERT INTO ")
+	if err := writeIdentifier(&query, tableName); err != nil {
+		return wrap.Error(err, "invalid table name")
+	}
+	queryString := query.String()
+
+	allRowsSent := false
+	for !allRowsSent {
+		batch, err := db.conn.PrepareBatch(ctx, queryString)
+		if err != nil {
+			return wrap.Error(err, "failed to prepare batch insert of CSV data")
+		}
+
+		for i := 0; i < BatchInsertSize; i++ {
+			row, finished, err := csvReader.ReadRow()
+			if finished {
+				allRowsSent = true
+				break
+			}
+			if err != nil {
+				return wrap.Errorf(err, "failed to read row %d from CSV", csvReader.CurrentRow())
+			}
+
+			values, err := schema.ConvertRow(row)
+			if err != nil {
+				return wrap.Errorf(
+					err, "failed to convert row %d to data types expected by schema",
+					csvReader.CurrentRow(),
+				)
+			}
+
+			if err := batch.Append(values...); err != nil {
+				return wrap.Errorf(
+					err, "failed to add row %d to batch insert", csvReader.CurrentRow(),
+				)
+			}
+		}
+
+		if err := batch.Send(); err != nil {
+			return wrap.Error(err, "failed to send batch insert")
+		}
 	}
 
 	return nil

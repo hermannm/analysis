@@ -4,21 +4,21 @@ import (
 	"fmt"
 	"strings"
 
-	"hermannm.dev/analysis/column"
+	"hermannm.dev/analysis/datatypes"
 )
 
-func columnTypeToClickHouse(columnType column.DataType) (string, error) {
+func columnTypeToClickHouse(columnType datatypes.DataType) (string, error) {
 	// See https://clickhouse.com/docs/en/sql-reference/data-types
 	switch columnType {
-	case column.DataTypeInt:
+	case datatypes.DataTypeInt:
 		return "Int64", nil
-	case column.DataTypeFloat:
+	case datatypes.DataTypeFloat:
 		return "Float64", nil
-	case column.DataTypeTimestamp:
-		return "DateTime64", nil
-	case column.DataTypeUUID:
+	case datatypes.DataTypeTimestamp:
+		return "DateTime64(3)", nil
+	case datatypes.DataTypeUUID:
 		return "UUID", nil
-	case column.DataTypeString:
+	case datatypes.DataTypeString:
 		return "String", nil
 	}
 
