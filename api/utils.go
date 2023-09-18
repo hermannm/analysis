@@ -8,7 +8,7 @@ import (
 	"hermannm.dev/wrap"
 )
 
-func sendError(message string, statusCode int, err error, res http.ResponseWriter) {
+func sendError(res http.ResponseWriter, err error, message string, statusCode int) {
 	if err != nil {
 		if message == "" {
 			message = err.Error()
@@ -21,11 +21,19 @@ func sendError(message string, statusCode int, err error, res http.ResponseWrite
 	http.Error(res, message, statusCode)
 }
 
-func sendJSON(value any, res http.ResponseWriter) {
+func sendClientError(res http.ResponseWriter, err error, message string) {
+	sendError(res, err, message, http.StatusBadRequest)
+}
+
+func sendServerError(res http.ResponseWriter, err error, message string) {
+	sendError(res, err, message, http.StatusInternalServerError)
+}
+
+func sendJSON(res http.ResponseWriter, value any) {
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusOK)
 
 	if err := json.NewEncoder(res).Encode(value); err != nil {
-		sendError("failed to serialize response", http.StatusInternalServerError, err, res)
+		sendError(res, err, "failed to serialize response", http.StatusInternalServerError)
 	}
 }

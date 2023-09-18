@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"hermannm.dev/analysis/csv"
+	"hermannm.dev/analysis/datatypes"
 	"hermannm.dev/analysis/db"
 )
 
@@ -35,44 +36,36 @@ func (api AnalysisAPI) ListenAndServe() error {
 func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Request) {
 	csvFile, _, err := req.FormFile("upload")
 	if err != nil {
-		sendError("failed to get file upload from request", http.StatusBadRequest, err, res)
+		sendClientError(res, err, "failed to get file upload from request")
 		return
 	}
 	defer csvFile.Close()
 
 	tableName := req.URL.Query().Get("table")
 	if tableName == "" {
-		sendError("missing query parameter 'table'", http.StatusBadRequest, err, res)
+		sendClientError(res, nil, "missing query parameter 'table'")
 		return
 	}
 
 	csvReader, err := csv.NewReader(csvFile)
 	if err != nil {
-		sendError("failed to read uploaded CSV file", http.StatusInternalServerError, err, res)
+		sendServerError(res, err, "failed to read uploaded CSV file")
 		return
 	}
 
-	columns, err := csvReader.DeduceColumnTypes(100)
+	schema, err := csvReader.DeduceDataSchema(100)
 	if err != nil {
-		sendError(
-			"failed to deduce column data types from uploaded CSV",
-			http.StatusInternalServerError, err, res,
-		)
+		sendServerError(res, err, "failed to deduce column data types from uploaded CSV")
 		return
 	}
 
-	if err := api.db.CreateTableSchema(req.Context(), tableName, columns); err != nil {
-		sendError(
-			"failed to create table from uploaded CSV", http.StatusInternalServerError, err, res,
-		)
+	if err := api.db.CreateTableSchema(req.Context(), tableName, schema); err != nil {
+		sendServerError(res, err, "failed to create table from uploaded CSV")
 		return
 	}
 
-	if err := api.db.UpdateTableWithCSV(req.Context(), tableName, csvReader); err != nil {
-		sendError(
-			"failed to insert CSV data after creating table",
-			http.StatusInternalServerError, err, res,
-		)
+	if err := api.db.UpdateTableWithCSV(req.Context(), tableName, schema, csvReader); err != nil {
+		sendServerError(res, err, "failed to insert CSV data after creating table")
 		return
 	}
 }
@@ -81,27 +74,27 @@ func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Req
 func (api AnalysisAPI) UpdateTableWithCSV(res http.ResponseWriter, req *http.Request) {
 	csvFile, _, err := req.FormFile("upload")
 	if err != nil {
-		sendError("failed to get file upload from request", http.StatusBadRequest, err, res)
+		sendClientError(res, err, "failed to get file upload from request")
 		return
 	}
 	defer csvFile.Close()
 
 	tableName := req.URL.Query().Get("table")
 	if tableName == "" {
-		sendError("missing query parameter 'table'", http.StatusBadRequest, err, res)
+		sendClientError(res, nil, "missing query parameter 'table'")
 		return
 	}
 
 	csvReader, err := csv.NewReader(csvFile)
 	if err != nil {
-		sendError("failed to read uploaded CSV file", http.StatusInternalServerError, err, res)
+		sendServerError(res, nil, "failed to read uploaded CSV file")
 		return
 	}
 
-	if err := api.db.UpdateTableWithCSV(req.Context(), tableName, csvReader); err != nil {
-		sendError(
-			"failed to update table with uploaded CSV", http.StatusInternalServerError, err, res,
-		)
+	if err := api.db.UpdateTableWithCSV(
+		req.Context(), tableName, datatypes.Schema{}, csvReader,
+	); err != nil {
+		sendServerError(res, err, "failed to update table with uploaded CSV")
 		return
 	}
 }
