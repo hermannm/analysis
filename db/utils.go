@@ -41,6 +41,7 @@ func writeIdentifier(writer *strings.Builder, identifier string) error {
 	}
 
 	return fmt.Errorf(
-		"'%s' contains both \" and `, which is incompatible with database", identifier,
+		"'%s' contains both \" and `, which is incompatible with database",
+		identifier,
 	)
 }

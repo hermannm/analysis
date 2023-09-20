@@ -38,9 +38,7 @@ func NewAnalysisDatabase(config ClickHouseConfig) (AnalysisDatabase, error) {
 		Debugf: func(format string, v ...any) {
 			fmt.Printf(format+"\n", v...)
 		},
-		Compression: &clickhouse.Compression{
-			Method: clickhouse.CompressionLZ4,
-		},
+		Compression: &clickhouse.Compression{Method: clickhouse.CompressionLZ4},
 	})
 	if err != nil {
 		return AnalysisDatabase{}, wrap.Error(err, "failed to connect to ClickHouse")
@@ -54,7 +52,9 @@ func NewAnalysisDatabase(config ClickHouseConfig) (AnalysisDatabase, error) {
 }
 
 func (db AnalysisDatabase) CreateTableSchema(
-	ctx context.Context, tableName string, schema datatypes.Schema,
+	ctx context.Context,
+	tableName string,
+	schema datatypes.Schema,
 ) error {
 	var query strings.Builder
 
@@ -68,7 +68,9 @@ func (db AnalysisDatabase) CreateTableSchema(
 		dataType, err := columnTypeToClickHouse(column.DataType)
 		if err != nil {
 			return wrap.Errorf(
-				err, "failed to get ClickHouse data type for column '%s'", column.Name,
+				err,
+				"failed to get ClickHouse data type for column '%s'",
+				column.Name,
 			)
 		}
 
@@ -100,7 +102,10 @@ func (db AnalysisDatabase) CreateTableSchema(
 const BatchInsertSize = 1000
 
 func (db AnalysisDatabase) UpdateTableWithCSV(
-	ctx context.Context, tableName string, schema datatypes.Schema, csvReader *csv.Reader,
+	ctx context.Context,
+	tableName string,
+	schema datatypes.Schema,
+	csvReader *csv.Reader,
 ) error {
 	// Skips header row, as we are only interested in data fields here
 	if _, err := csvReader.ReadHeaderRow(); err != nil {

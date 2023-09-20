@@ -15,7 +15,10 @@ func (reader *Reader) DeduceDataSchema(maxRowsToCheck int) (schema datatypes.Sch
 
 	columnNames, err := reader.ReadHeaderRow()
 	if err != nil {
-		return datatypes.Schema{}, wrap.Error(err, "failed to read CSV column names from header row")
+		return datatypes.Schema{}, wrap.Error(
+			err,
+			"failed to read CSV column names from header row",
+		)
 	}
 
 	schema = datatypes.NewSchema(columnNames)
@@ -31,14 +34,17 @@ func (reader *Reader) DeduceDataSchema(maxRowsToCheck int) (schema datatypes.Sch
 
 		if err := schema.DeduceColumnTypesFromRow(row); err != nil {
 			return datatypes.Schema{}, wrap.Errorf(
-				err, "failed to parse CSV field types from row %d", reader.CurrentRow(),
+				err,
+				"failed to parse CSV field types from row %d",
+				reader.CurrentRow(),
 			)
 		}
 	}
 
 	if errs := schema.Validate(); len(errs) > 0 {
 		return datatypes.Schema{}, wrap.Errors(
-			"failed to deduce data types for all given CSV columns", errs...,
+			"failed to deduce data types for all given CSV columns",
+			errs...,
 		)
 	}
 

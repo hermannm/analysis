@@ -33,9 +33,7 @@ type Schema struct {
 func NewSchema(columnNames []string) Schema {
 	columns := make([]Column, 0, len(columnNames))
 	for _, columnName := range columnNames {
-		columns = append(columns, Column{
-			Name: columnName, DataType: "", Optional: false,
-		})
+		columns = append(columns, Column{Name: columnName, DataType: "", Optional: false})
 	}
 
 	return Schema{Columns: columns}
@@ -57,7 +55,9 @@ func (schema Schema) DeduceColumnTypesFromRow(row []string) error {
 		} else if column.DataType != deducedType {
 			return fmt.Errorf(
 				"found incompatible data types '%s' and '%s' in column '%s'",
-				column.DataType, deducedType, column.Name,
+				column.DataType,
+				deducedType,
+				column.Name,
 			)
 		}
 
@@ -97,8 +97,11 @@ func (schema Schema) ConvertAndAppendRow(convertedRow []any, rawRow []string) ([
 		convertedField, err := convertField(field, column)
 		if err != nil {
 			return nil, wrap.Errorf(
-				err, "failed to convert field '%s' to %s for column '%s'",
-				field, column.DataType, column.Name,
+				err,
+				"failed to convert field '%s' to %s for column '%s'",
+				field,
+				column.DataType,
+				column.Name,
 			)
 		}
 
@@ -132,8 +135,10 @@ func convertField(field string, column Column) (convertedField any, err error) {
 	case DataTypeUUID:
 		if _, err := uuid.Parse(field); err != nil {
 			return nil, wrap.Errorf(
-				err, "failed to parse value '%s' as UUID for column '%s'",
-				field, column.Name,
+				err,
+				"failed to parse value '%s' as UUID for column '%s'",
+				field,
+				column.Name,
 			)
 		}
 		return field, nil

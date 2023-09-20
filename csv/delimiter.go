@@ -10,7 +10,9 @@ import (
 var DefaultDelimitersToCheck = []rune{',', ';', '\t', ' ', '|'}
 
 func DeduceFieldDelimiter(
-	csvFile io.ReadSeeker, maxRowsToCheck int, delimitersToCheck []rune,
+	csvFile io.ReadSeeker,
+	maxRowsToCheck int,
+	delimitersToCheck []rune,
 ) (delimiter rune, err error) {
 	// Resets reader position in file before returning, so its data can be read subsequently
 	defer func() {
@@ -66,11 +68,10 @@ func newDelimiterCandidateList(delimitersToCheck []rune) delimiterCandidateList 
 	list := make([]delimiterCandidate, 0, len(delimitersToCheck))
 
 	for _, delimiter := range delimitersToCheck {
-		list = append(list, delimiterCandidate{
-			delimiter:    delimiter,
-			highestCount: -1,
-			lowestCount:  -1,
-		})
+		list = append(
+			list,
+			delimiterCandidate{delimiter: delimiter, highestCount: -1, lowestCount: -1},
+		)
 	}
 
 	return list
