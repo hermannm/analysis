@@ -138,6 +138,7 @@ func convertField(field string, column Column) (convertedField any, err error) {
 				field, column.Name,
 			)
 		}
+		return field, nil
 	case DataTypeString:
 		return field, nil
 	}
