@@ -89,8 +89,6 @@ func (db AnalysisDatabase) CreateTableSchema(
 	query.WriteString(" ENGINE = MergeTree()")
 	query.WriteString(" PRIMARY KEY (id)")
 
-	fmt.Println(query.String())
-
 	if err := db.conn.Exec(ctx, query.String()); err != nil {
 		return wrap.Error(err, "create table query failed")
 	}
