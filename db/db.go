@@ -7,6 +7,7 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
+	"github.com/google/uuid"
 	"hermannm.dev/analysis/csv"
 	"hermannm.dev/analysis/datatypes"
 	"hermannm.dev/wrap"
@@ -127,10 +128,20 @@ func (db AnalysisDatabase) UpdateTableWithCSV(
 				break
 			}
 			if err != nil {
-				return wrap.Errorf(err, "failed to read row %d from CSV", csvReader.CurrentRow())
+				return wrap.Error(err, "failed to read from CSV")
 			}
 
-			values, err := schema.ConvertRow(row)
+			values := make([]any, 0, 1+len(row))
+
+			id, err := uuid.NewUUID()
+			if err != nil {
+				return wrap.Errorf(
+					err, "failed to generate unique ID for row %d", csvReader.CurrentRow(),
+				)
+			}
+			values = append(values, id.String())
+
+			values, err = schema.ConvertAndAppendRow(values, row)
 			if err != nil {
 				return wrap.Errorf(
 					err, "failed to convert row %d to data types expected by schema",

@@ -86,14 +86,12 @@ func deduceColumnTypeFromField(field string) (deducedType DataType, isBlank bool
 	return DataTypeString, false
 }
 
-func (schema Schema) ConvertRow(row []string) (convertedRow []any, err error) {
-	if len(row) != len(schema.Columns) {
+func (schema Schema) ConvertAndAppendRow(convertedRow []any, rawRow []string) ([]any, error) {
+	if len(rawRow) != len(schema.Columns) {
 		return nil, errors.New("given row has more fields than there are columns in the schema")
 	}
 
-	convertedRow = make([]any, 0, len(row))
-
-	for i, field := range row {
+	for i, field := range rawRow {
 		column := schema.Columns[i]
 
 		convertedField, err := convertField(field, column)

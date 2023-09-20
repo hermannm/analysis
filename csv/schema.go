@@ -26,9 +26,7 @@ func (reader *Reader) DeduceDataSchema(maxRowsToCheck int) (schema datatypes.Sch
 			break
 		}
 		if err != nil {
-			return datatypes.Schema{}, wrap.Errorf(
-				err, "failed to read row %d of CSV file", reader.CurrentRow(),
-			)
+			return datatypes.Schema{}, wrap.Errorf(err, "failed to read CSV file")
 		}
 
 		if err := schema.DeduceColumnTypesFromRow(row); err != nil {
