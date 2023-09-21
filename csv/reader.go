@@ -18,11 +18,14 @@ func NewReader(csvFile io.ReadSeeker) (*Reader, error) {
 		return nil, err
 	}
 
-	inner := csv.NewReader(csvFile)
-	inner.ReuseRecord = true
-	inner.Comma = delimiter
+	return &Reader{inner: newInnerReader(csvFile, delimiter), file: csvFile, currentRow: 0}, nil
+}
 
-	return &Reader{inner: inner, file: csvFile, currentRow: 0}, nil
+func newInnerReader(csvFile io.ReadSeeker, delimiter rune) *csv.Reader {
+	reader := csv.NewReader(csvFile)
+	reader.ReuseRecord = true
+	reader.Comma = delimiter
+	return reader
 }
 
 // Implements db.DataSource
@@ -61,5 +64,6 @@ func (reader *Reader) ResetReadPosition() error {
 	}
 
 	reader.currentRow = 0
+	reader.inner = newInnerReader(reader.file, reader.inner.Comma)
 	return nil
 }
