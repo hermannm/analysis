@@ -3,11 +3,14 @@ package db
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
+	clickhouseproto "github.com/ClickHouse/clickhouse-go/v2/lib/proto"
 	"github.com/google/uuid"
+	"hermannm.dev/analysis/config"
 	"hermannm.dev/analysis/datatypes"
 	"hermannm.dev/wrap"
 )
@@ -16,24 +19,16 @@ type AnalysisDatabase struct {
 	conn driver.Conn
 }
 
-type ClickHouseConfig struct {
-	Address      string
-	DatabaseName string
-	Username     string
-	Password     string
-	Debug        bool
-}
-
-func NewAnalysisDatabase(config ClickHouseConfig) (AnalysisDatabase, error) {
+func NewAnalysisDatabase(config config.Config) (AnalysisDatabase, error) {
 	// Options docs: https://clickhouse.com/docs/en/integrations/go#connection-settings
 	conn, err := clickhouse.Open(&clickhouse.Options{
-		Addr: []string{config.Address},
+		Addr: []string{config.ClickHouse.Address},
 		Auth: clickhouse.Auth{
-			Database: config.DatabaseName,
-			Username: config.Username,
-			Password: config.Password,
+			Database: config.ClickHouse.DatabaseName,
+			Username: config.ClickHouse.Username,
+			Password: config.ClickHouse.Password,
 		},
-		Debug: config.Debug,
+		Debug: config.ClickHouse.Debug,
 		Debugf: func(format string, v ...any) {
 			fmt.Printf(format+"\n", v...)
 		},
@@ -47,7 +42,25 @@ func NewAnalysisDatabase(config ClickHouseConfig) (AnalysisDatabase, error) {
 		return AnalysisDatabase{}, wrap.Error(err, "failed to ping ClickHouse connection")
 	}
 
-	return AnalysisDatabase{conn: conn}, nil
+	db := AnalysisDatabase{conn: conn}
+
+	tableToDrop := config.ClickHouse.DropTableOnStartup
+	if tableToDrop != "" && !config.IsProduction {
+		tableAlreadyDropped, err := db.dropTable(context.Background(), tableToDrop)
+		if err != nil {
+			log.Println(
+				wrap.Errorf(
+					err,
+					"failed to drop table '%s' (from DEBUG_DROP_TABLE_ON_STARTUP in env)",
+					tableToDrop,
+				),
+			)
+		} else if !tableAlreadyDropped {
+			log.Printf("Dropped table '%s' (from DEBUG_DROP_TABLE_ON_STARTUP in env)", tableToDrop)
+		}
+	}
+
+	return db, nil
 }
 
 func (db AnalysisDatabase) CreateTableSchema(
@@ -164,4 +177,29 @@ func (db AnalysisDatabase) UpdateTableData(
 	}
 
 	return nil
+}
+
+func (db AnalysisDatabase) dropTable(
+	ctx context.Context,
+	tableName string,
+) (tableAlreadyDropped bool, err error) {
+	var query strings.Builder
+	query.WriteString("DROP TABLE ")
+	if err := writeIdentifier(&query, tableName); err != nil {
+		return false, wrap.Error(err, "invalid table name")
+	}
+
+	// See https://github.com/ClickHouse/ClickHouse/blob/bd387f6d2c30f67f2822244c0648f2169adab4d3/src/Common/ErrorCodes.cpp#L66
+	const clickhouseUnknownTableErrorCode = 60
+
+	if err := db.conn.Exec(ctx, query.String()); err != nil {
+		clickHouseErr, isClickHouseErr := err.(*clickhouseproto.Exception)
+		if isClickHouseErr && clickHouseErr.Code == clickhouseUnknownTableErrorCode {
+			return true, nil
+		}
+
+		return false, wrap.Error(err, "drop table query failed")
+	}
+
+	return false, nil
 }
