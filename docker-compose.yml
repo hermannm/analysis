@@ -6,8 +6,8 @@ services:
     container_name: clickhouse-01
     hostname: clickhouse-01
     volumes:
-      - ${PWD}/clickhouse-config/config.xml:/etc/clickhouse-server/config.d/config.xml
-      - ${PWD}/clickhouse-config/users.xml:/etc/clickhouse-server/users.d/users.xml
+      - ${PWD}/config/clickhouse-config.xml:/etc/clickhouse-server/config.d/config.xml
+      - ${PWD}/config/clickhouse-users.xml:/etc/clickhouse-server/users.d/users.xml
     ports:
       - "127.0.0.1:8123:8123"
       - "127.0.0.1:9000:9000"
