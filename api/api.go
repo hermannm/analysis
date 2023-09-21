@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"hermannm.dev/analysis/config"
 	"hermannm.dev/analysis/csv"
 	"hermannm.dev/analysis/datatypes"
 	"hermannm.dev/analysis/db"
@@ -12,15 +13,15 @@ import (
 type AnalysisAPI struct {
 	db     db.AnalysisDatabase
 	router *http.ServeMux
-	config Config
+	config config.API
 }
 
-type Config struct {
-	Port string
-}
-
-func NewAnalysisAPI(db db.AnalysisDatabase, router *http.ServeMux, config Config) AnalysisAPI {
-	api := AnalysisAPI{db: db, router: router, config: config}
+func NewAnalysisAPI(
+	db db.AnalysisDatabase,
+	router *http.ServeMux,
+	config config.Config,
+) AnalysisAPI {
+	api := AnalysisAPI{db: db, router: router, config: config.API}
 
 	api.router.HandleFunc("/create-table-from-csv", api.CreateTableFromCSV)
 	api.router.HandleFunc("/update-table-with-csv", api.UpdateTableWithCSV)
