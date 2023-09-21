@@ -8,7 +8,6 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/google/uuid"
-	"hermannm.dev/analysis/csv"
 	"hermannm.dev/analysis/datatypes"
 	"hermannm.dev/wrap"
 )
@@ -101,17 +100,16 @@ func (db AnalysisDatabase) CreateTableSchema(
 
 const BatchInsertSize = 1000
 
-func (db AnalysisDatabase) UpdateTableWithCSV(
+type DataSource interface {
+	ReadRow() (row []string, rowNumber int, done bool, err error)
+}
+
+func (db AnalysisDatabase) UpdateTableData(
 	ctx context.Context,
 	tableName string,
 	schema datatypes.Schema,
-	csvReader *csv.Reader,
+	data DataSource,
 ) error {
-	// Skips header row, as we are only interested in data fields here
-	if _, err := csvReader.ReadHeaderRow(); err != nil {
-		return wrap.Error(err, "failed to skip CSV header row")
-	}
-
 	var query strings.Builder
 	query.WriteString("INSERT INTO ")
 	if err := writeIdentifier(&query, tableName); err != nil {
@@ -119,45 +117,44 @@ func (db AnalysisDatabase) UpdateTableWithCSV(
 	}
 	queryString := query.String()
 
+	fieldsPerRow := len(schema.Columns) + 1 // +1 for id field
+
 	allRowsSent := false
 	for !allRowsSent {
 		batch, err := db.conn.PrepareBatch(ctx, queryString)
 		if err != nil {
-			return wrap.Error(err, "failed to prepare batch insert of CSV data")
+			return wrap.Error(err, "failed to prepare batch data insert")
 		}
 
 		for i := 0; i < BatchInsertSize; i++ {
-			row, finished, err := csvReader.ReadRow()
-			if finished {
+			rawRow, rowNumber, done, err := data.ReadRow()
+			if done {
 				allRowsSent = true
 				break
 			}
 			if err != nil {
-				return wrap.Error(err, "failed to read from CSV")
+				return wrap.Error(err, "failed to read row")
 			}
 
-			values := make([]any, 0, 1+len(row))
+			convertedRow := make([]any, 0, fieldsPerRow)
 
 			id, err := uuid.NewUUID()
 			if err != nil {
-				return wrap.Errorf(
-					err, "failed to generate unique ID for row %d", csvReader.CurrentRow(),
-				)
+				return wrap.Errorf(err, "failed to generate unique ID for row %d", rowNumber)
 			}
-			values = append(values, id.String())
+			convertedRow = append(convertedRow, id.String())
 
-			values, err = schema.ConvertAndAppendRow(values, row)
+			convertedRow, err = schema.ConvertAndAppendRow(convertedRow, rawRow)
 			if err != nil {
 				return wrap.Errorf(
-					err, "failed to convert row %d to data types expected by schema",
-					csvReader.CurrentRow(),
+					err,
+					"failed to convert row %d to data types expected by schema",
+					rowNumber,
 				)
 			}
 
-			if err := batch.Append(values...); err != nil {
-				return wrap.Errorf(
-					err, "failed to add row %d to batch insert", csvReader.CurrentRow(),
-				)
+			if err := batch.Append(convertedRow...); err != nil {
+				return wrap.Errorf(err, "failed to add row %d to batch insert", rowNumber)
 			}
 		}
 

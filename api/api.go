@@ -64,7 +64,7 @@ func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Req
 		return
 	}
 
-	if err := api.db.UpdateTableWithCSV(req.Context(), tableName, schema, csvReader); err != nil {
+	if err := api.db.UpdateTableData(req.Context(), tableName, schema, csvReader); err != nil {
 		sendServerError(res, err, "failed to insert CSV data after creating table")
 		return
 	}
@@ -91,7 +91,7 @@ func (api AnalysisAPI) UpdateTableWithCSV(res http.ResponseWriter, req *http.Req
 		return
 	}
 
-	if err := api.db.UpdateTableWithCSV(
+	if err := api.db.UpdateTableData(
 		req.Context(), tableName, datatypes.Schema{}, csvReader,
 	); err != nil {
 		sendServerError(res, err, "failed to update table with uploaded CSV")

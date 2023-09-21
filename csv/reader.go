@@ -25,37 +25,34 @@ func NewReader(csvFile io.ReadSeeker) (*Reader, error) {
 	return &Reader{inner: inner, file: csvFile, currentRow: 0}, nil
 }
 
-func (reader *Reader) ReadRow() (row []string, finished bool, err error) {
+// Implements db.DataSource
+func (reader *Reader) ReadRow() (row []string, rowNumber int, done bool, err error) {
 	reader.currentRow++
 
 	row, err = reader.inner.Read()
 	if err != nil {
 		if errors.Is(err, io.EOF) {
-			return nil, true, nil
+			return nil, 0, true, nil
 		} else {
-			return nil, false, err
+			return nil, 0, false, err
 		}
 	}
 
-	return row, false, nil
+	return row, reader.currentRow, false, nil
 }
 
 func (reader *Reader) ReadHeaderRow() (row []string, err error) {
-	row, finished, err := reader.ReadRow()
-	if reader.CurrentRow() != 1 {
+	row, rowNumber, done, err := reader.ReadRow()
+	if rowNumber != 1 {
 		return nil, errors.New("tried to read header row after reading previous rows")
 	}
-	if finished {
+	if done {
 		return nil, errors.New("csv file ended before header row")
 	}
 	if err != nil {
 		return nil, err
 	}
 	return row, nil
-}
-
-func (reader Reader) CurrentRow() int {
-	return reader.currentRow
 }
 
 func (reader *Reader) ResetReadPosition() error {

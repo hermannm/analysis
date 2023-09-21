@@ -6,10 +6,15 @@ import (
 )
 
 func (reader *Reader) DeduceDataSchema(maxRowsToCheck int) (schema datatypes.Schema, err error) {
-	// Resets reader position in file before returning, so its data can be read subsequently
+	// Sets reader position to just after header row before returning, so its data can be read
+	// subsequently
 	defer func() {
 		if resetErr := reader.ResetReadPosition(); resetErr != nil {
-			err = wrap.Error(resetErr, "failed to reset CSV file after parsing its column types")
+			err = wrap.Error(resetErr, "failed to reset CSV file after deducing data schema")
+			return
+		}
+		if _, readErr := reader.ReadHeaderRow(); readErr != nil {
+			err = wrap.Error(err, "failed to skip CSV header row after deducing data schema")
 		}
 	}()
 
@@ -24,8 +29,8 @@ func (reader *Reader) DeduceDataSchema(maxRowsToCheck int) (schema datatypes.Sch
 	schema = datatypes.NewSchema(columnNames)
 
 	for {
-		row, finished, err := reader.ReadRow()
-		if finished || reader.CurrentRow() > maxRowsToCheck {
+		row, rowNumber, done, err := reader.ReadRow()
+		if done || rowNumber > maxRowsToCheck {
 			break
 		}
 		if err != nil {
@@ -36,7 +41,7 @@ func (reader *Reader) DeduceDataSchema(maxRowsToCheck int) (schema datatypes.Sch
 			return datatypes.Schema{}, wrap.Errorf(
 				err,
 				"failed to parse CSV field types from row %d",
-				reader.CurrentRow(),
+				rowNumber,
 			)
 		}
 	}
