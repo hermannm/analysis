@@ -1,10 +1,13 @@
 package db
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
+	clickhouseproto "github.com/ClickHouse/clickhouse-go/v2/lib/proto"
 	"hermannm.dev/analysis/datatypes"
+	"hermannm.dev/wrap"
 )
 
 func columnTypeToClickHouse(columnType datatypes.DataType) (string, error) {
@@ -44,4 +47,29 @@ func writeIdentifier(writer *strings.Builder, identifier string) error {
 		"'%s' contains both \" and `, which is incompatible with database",
 		identifier,
 	)
+}
+
+func (db AnalysisDatabase) dropTable(
+	ctx context.Context,
+	tableName string,
+) (tableAlreadyDropped bool, err error) {
+	var query strings.Builder
+	query.WriteString("DROP TABLE ")
+	if err := writeIdentifier(&query, tableName); err != nil {
+		return false, wrap.Error(err, "invalid table name")
+	}
+
+	// See https://github.com/ClickHouse/ClickHouse/blob/bd387f6d2c30f67f2822244c0648f2169adab4d3/src/Common/ErrorCodes.cpp#L66
+	const clickhouseUnknownTableErrorCode = 60
+
+	if err := db.conn.Exec(ctx, query.String()); err != nil {
+		clickHouseErr, isClickHouseErr := err.(*clickhouseproto.Exception)
+		if isClickHouseErr && clickHouseErr.Code == clickhouseUnknownTableErrorCode {
+			return true, nil
+		}
+
+		return false, wrap.Error(err, "drop table query failed")
+	}
+
+	return false, nil
 }
