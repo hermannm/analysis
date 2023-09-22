@@ -6,7 +6,6 @@ import (
 
 	"hermannm.dev/analysis/config"
 	"hermannm.dev/analysis/csv"
-	"hermannm.dev/analysis/datatypes"
 	"hermannm.dev/analysis/db"
 )
 
@@ -33,6 +32,8 @@ func (api AnalysisAPI) ListenAndServe() error {
 	return http.ListenAndServe(fmt.Sprintf(":%s", api.config.Port), api.router)
 }
 
+const maxRowsToCheckForCSVSchemaDeduction = 100
+
 // Endpointing for creating a new table from an uploaded CSV file.
 func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Request) {
 	csvFile, _, err := req.FormFile("upload")
@@ -54,7 +55,7 @@ func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Req
 		return
 	}
 
-	schema, err := csvReader.DeduceDataSchema(100)
+	schema, err := csvReader.DeduceDataSchema(maxRowsToCheckForCSVSchemaDeduction)
 	if err != nil {
 		sendServerError(res, err, "failed to deduce column data types from uploaded CSV")
 		return
@@ -94,9 +95,13 @@ func (api AnalysisAPI) UpdateTableWithCSV(res http.ResponseWriter, req *http.Req
 		return
 	}
 
-	if err := api.db.UpdateTableData(
-		req.Context(), tableName, datatypes.Schema{}, csvReader,
-	); err != nil {
+	schema, err := csvReader.DeduceDataSchema(maxRowsToCheckForCSVSchemaDeduction)
+	if err != nil {
+		sendServerError(res, err, "failed to deduce column data types from uploaded CSV")
+		return
+	}
+
+	if err := api.db.UpdateTableData(req.Context(), tableName, schema, csvReader); err != nil {
 		sendServerError(res, err, "failed to update table with uploaded CSV")
 		return
 	}
