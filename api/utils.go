@@ -32,7 +32,6 @@ func sendServerError(res http.ResponseWriter, err error, message string) {
 
 func sendJSON(res http.ResponseWriter, value any) {
 	res.Header().Set("Content-Type", "application/json")
-	res.WriteHeader(http.StatusOK)
 
 	if err := json.NewEncoder(res).Encode(value); err != nil {
 		sendError(res, err, "failed to serialize response", http.StatusInternalServerError)
