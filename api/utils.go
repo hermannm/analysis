@@ -2,23 +2,24 @@ package api
 
 import (
 	"encoding/json"
-	"log"
+	"errors"
 	"net/http"
 
+	"hermannm.dev/analysis/log"
 	"hermannm.dev/wrap"
 )
 
 func sendError(res http.ResponseWriter, err error, message string, statusCode int) {
-	if err != nil {
-		if message == "" {
-			message = err.Error()
-		} else {
-			message = wrap.Error(err, message).Error()
-		}
+	if err == nil {
+		err = errors.New(message)
 	}
 
-	log.Println(message)
-	http.Error(res, message, statusCode)
+	if message != "" {
+		err = wrap.Error(err, message)
+	}
+
+	log.Error(err, "")
+	http.Error(res, err.Error(), statusCode)
 }
 
 func sendClientError(res http.ResponseWriter, err error, message string) {

@@ -3,11 +3,11 @@ package db
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"hermannm.dev/analysis/config"
+	"hermannm.dev/analysis/log"
 	"hermannm.dev/wrap"
 )
 
@@ -44,15 +44,13 @@ func NewAnalysisDatabase(config config.Config) (AnalysisDatabase, error) {
 	if tableToDrop != "" && !config.IsProduction {
 		tableAlreadyDropped, err := db.dropTable(context.Background(), tableToDrop)
 		if err != nil {
-			log.Println(
-				wrap.Errorf(
-					err,
-					"failed to drop table '%s' (from DEBUG_DROP_TABLE_ON_STARTUP in env)",
-					tableToDrop,
-				),
+			log.Errorf(
+				err,
+				"failed to drop table '%s' (from DEBUG_DROP_TABLE_ON_STARTUP in env)",
+				tableToDrop,
 			)
 		} else if !tableAlreadyDropped {
-			log.Printf("Dropped table '%s' (from DEBUG_DROP_TABLE_ON_STARTUP in env)", tableToDrop)
+			log.Infof("Dropped table '%s' (from DEBUG_DROP_TABLE_ON_STARTUP in env)", tableToDrop)
 		}
 	}
 
