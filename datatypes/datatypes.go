@@ -1,5 +1,10 @@
 package datatypes
 
+import (
+	"encoding/json"
+	"errors"
+)
+
 type DataType uint8
 
 const (
@@ -31,4 +36,23 @@ func (dataType DataType) String() string {
 	} else {
 		return "[INVALID]"
 	}
+}
+
+func (dataType DataType) MarshalJSON() ([]byte, error) {
+	if name, ok := dataTypeNames[dataType]; ok {
+		return json.Marshal(name)
+	} else {
+		return nil, errors.New("unrecognized data type")
+	}
+}
+
+func (dataType *DataType) UnmarshalJSON(bytes []byte) error {
+	for candidate, name := range dataTypeNames {
+		if name == string(bytes) {
+			*dataType = candidate
+			return nil
+		}
+	}
+
+	return errors.New("unrecognized data type")
 }
