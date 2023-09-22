@@ -14,6 +14,7 @@ func main() {
 	config, err := config.ReadFromEnv()
 	if err != nil {
 		log.Error(err, "failed to read config from env")
+		os.Exit(1)
 	}
 
 	log.Info("Connecting to ClickHouse...")
