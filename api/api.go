@@ -4,26 +4,26 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/julienschmidt/httprouter"
 	"hermannm.dev/analysis/config"
 	"hermannm.dev/analysis/db"
 )
 
 type AnalysisAPI struct {
 	db     db.AnalysisDatabase
-	router *http.ServeMux
+	router *httprouter.Router
 	config config.API
 }
 
 func NewAnalysisAPI(
 	db db.AnalysisDatabase,
-	router *http.ServeMux,
 	config config.Config,
 ) AnalysisAPI {
-	api := AnalysisAPI{db: db, router: router, config: config.API}
+	api := AnalysisAPI{db: db, router: httprouter.New(), config: config.API}
 
-	api.router.HandleFunc("/create-table-from-csv", api.CreateTableFromCSV)
-	api.router.HandleFunc("/update-table-with-csv", api.UpdateTableWithCSV)
-	api.router.HandleFunc("/aggregate", api.Aggregate)
+	api.router.HandlerFunc(http.MethodPost, "/create-table-from-csv", api.CreateTableFromCSV)
+	api.router.HandlerFunc(http.MethodPatch, "/update-table-with-csv", api.UpdateTableWithCSV)
+	api.router.HandlerFunc(http.MethodPost, "/aggregate", api.Aggregate)
 
 	return api
 }
