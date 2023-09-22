@@ -21,13 +21,13 @@ const (
 )
 
 type Column struct {
-	Name     string
-	DataType DataType
-	Optional bool
+	Name     string   `json:"name"`
+	DataType DataType `json:"dataType"`
+	Optional bool     `json:"optional"`
 }
 
 type Schema struct {
-	Columns []Column
+	Columns []Column `json:"columns"`
 }
 
 func NewSchema(columnNames []string) Schema {

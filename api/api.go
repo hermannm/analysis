@@ -69,6 +69,8 @@ func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Req
 		sendServerError(res, err, "failed to insert CSV data after creating table")
 		return
 	}
+
+	sendJSON(res, schema)
 }
 
 // Endpoint for uploading CSV data to an existing table.
