@@ -111,7 +111,9 @@ func (db AnalysisDatabase) CreateTableSchema(
 	return nil
 }
 
-const BatchInsertSize = 1000
+// ClickHouse recommends keeping batch inserts between 10,000 and 100,000 rows:
+// https://clickhouse.com/docs/en/cloud/bestpractices/bulk-inserts
+const BatchInsertSize = 10000
 
 type DataSource interface {
 	ReadRow() (row []string, rowNumber int, done bool, err error)
