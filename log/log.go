@@ -24,13 +24,21 @@ func Warnf(format string, args ...any) {
 }
 
 func Error(err error, msg string) {
-	if msg != "" {
-		err = wrap.Error(err, msg)
-	}
+	if err == nil {
+		slog.Error(msg)
+	} else {
+		if msg != "" {
+			err = wrap.Error(err, msg)
+		}
 
-	slog.Error(err.Error())
+		slog.Error(err.Error())
+	}
 }
 
 func Errorf(err error, format string, args ...any) {
-	slog.Error(wrap.Errorf(err, format, args...).Error())
+	if err == nil {
+		slog.Error(fmt.Sprintf(format, args...))
+	} else {
+		slog.Error(wrap.Errorf(err, format, args...).Error())
+	}
 }
