@@ -10,15 +10,12 @@ import (
 )
 
 type AnalysisAPI struct {
-	db     db.AnalysisDatabase
+	db     db.AnalysisDB
 	router *httprouter.Router
 	config config.API
 }
 
-func NewAnalysisAPI(
-	db db.AnalysisDatabase,
-	config config.Config,
-) AnalysisAPI {
+func NewAnalysisAPI(db db.AnalysisDB, config config.Config) AnalysisAPI {
 	api := AnalysisAPI{db: db, router: httprouter.New(), config: config.API}
 
 	api.router.HandlerFunc(http.MethodPost, "/create-table-from-csv", api.CreateTableFromCSV)

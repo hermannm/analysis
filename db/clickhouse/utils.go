@@ -1,4 +1,4 @@
-package db
+package clickhouse
 
 import (
 	"context"
@@ -6,22 +6,22 @@ import (
 	"strings"
 
 	clickhouseproto "github.com/ClickHouse/clickhouse-go/v2/lib/proto"
-	"hermannm.dev/analysis/datatypes"
+	"hermannm.dev/analysis/db"
 	"hermannm.dev/wrap"
 )
 
-func columnTypeToClickHouse(columnType datatypes.DataType) (string, error) {
+func columnTypeToClickHouse(columnType db.DataType) (string, error) {
 	// See https://clickhouse.com/docs/en/sql-reference/data-types
 	switch columnType {
-	case datatypes.DataTypeInt:
+	case db.DataTypeInt:
 		return "Int64", nil
-	case datatypes.DataTypeFloat:
+	case db.DataTypeFloat:
 		return "Float64", nil
-	case datatypes.DataTypeTimestamp:
+	case db.DataTypeTimestamp:
 		return "DateTime64(3)", nil
-	case datatypes.DataTypeUUID:
+	case db.DataTypeUUID:
 		return "UUID", nil
-	case datatypes.DataTypeString:
+	case db.DataTypeString:
 		return "String", nil
 	}
 
@@ -49,7 +49,7 @@ func writeIdentifier(writer *strings.Builder, identifier string) error {
 	)
 }
 
-func (db AnalysisDatabase) dropTable(
+func (db ClickHouseDB) dropTable(
 	ctx context.Context,
 	tableName string,
 ) (tableAlreadyDropped bool, err error) {

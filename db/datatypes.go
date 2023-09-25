@@ -1,4 +1,4 @@
-package datatypes
+package db
 
 import (
 	"encoding/json"

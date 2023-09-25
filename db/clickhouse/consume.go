@@ -1,25 +1,21 @@
-package db
+package clickhouse
 
 import (
 	"context"
 	"strconv"
 	"strings"
 
+	"hermannm.dev/analysis/db"
 	"hermannm.dev/wrap"
 )
 
-type Aggregate struct {
-	Column string `ch:"analysis_group_column" json:"column"`
-	Sum    int64  `ch:"analysis_aggregate"    json:"sum"`
-}
-
-func (db AnalysisDatabase) Aggregate(
+func (db ClickHouseDB) Aggregate(
 	ctx context.Context,
 	tableName string,
 	groupColumn string,
 	aggregationColumn string,
 	limit int,
-) (aggregates []Aggregate, err error) {
+) (aggregates []db.Aggregate, err error) {
 	var query strings.Builder
 	query.WriteString("SELECT ")
 

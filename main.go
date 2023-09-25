@@ -5,7 +5,7 @@ import (
 
 	"hermannm.dev/analysis/api"
 	"hermannm.dev/analysis/config"
-	"hermannm.dev/analysis/db"
+	"hermannm.dev/analysis/db/clickhouse"
 	"hermannm.dev/analysis/log"
 )
 
@@ -18,7 +18,7 @@ func main() {
 	}
 
 	log.Info("Connecting to ClickHouse...")
-	db, err := db.NewAnalysisDatabase(config)
+	db, err := clickhouse.NewClickHouseDB(config)
 	if err != nil {
 		log.Error(err, "failed to initialize database")
 		os.Exit(1)

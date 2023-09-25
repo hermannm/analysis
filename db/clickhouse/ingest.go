@@ -1,18 +1,18 @@
-package db
+package clickhouse
 
 import (
 	"context"
 	"strings"
 
 	"github.com/google/uuid"
-	"hermannm.dev/analysis/datatypes"
+	"hermannm.dev/analysis/db"
 	"hermannm.dev/wrap"
 )
 
-func (db AnalysisDatabase) CreateTableSchema(
+func (db ClickHouseDB) CreateTableSchema(
 	ctx context.Context,
 	table string,
-	schema datatypes.Schema,
+	schema db.Schema,
 ) error {
 	var query strings.Builder
 
@@ -61,15 +61,11 @@ func (db AnalysisDatabase) CreateTableSchema(
 // https://clickhouse.com/docs/en/cloud/bestpractices/bulk-inserts
 const BatchInsertSize = 10000
 
-type DataSource interface {
-	ReadRow() (row []string, rowNumber int, done bool, err error)
-}
-
-func (db AnalysisDatabase) UpdateTableData(
+func (db ClickHouseDB) UpdateTableData(
 	ctx context.Context,
 	table string,
-	schema datatypes.Schema,
-	data DataSource,
+	schema db.Schema,
+	data db.DataSource,
 ) error {
 	var query strings.Builder
 	query.WriteString("INSERT INTO ")
