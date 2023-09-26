@@ -8,13 +8,13 @@ import (
 type DataType uint8
 
 const (
-	DataTypeString    DataType = 0
-	DataTypeInt       DataType = 1
-	DataTypeFloat     DataType = 2
-	DataTypeTimestamp DataType = 3
-	DataTypeUUID      DataType = 4
+	invalidDataType DataType = 0
 
-	invalidDataType DataType = 255
+	DataTypeString    DataType = 1
+	DataTypeInt       DataType = 2
+	DataTypeFloat     DataType = 3
+	DataTypeTimestamp DataType = 4
+	DataTypeUUID      DataType = 5
 )
 
 var dataTypeNames = map[DataType]string{
