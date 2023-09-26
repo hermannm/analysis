@@ -21,7 +21,7 @@ func columnTypeToClickHouse(columnType db.DataType) (string, error) {
 		return "DateTime64(3)", nil
 	case db.DataTypeUUID:
 		return "UUID", nil
-	case db.DataTypeString:
+	case db.DataTypeText:
 		return "String", nil
 	}
 

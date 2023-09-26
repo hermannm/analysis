@@ -10,7 +10,7 @@ type DataType uint8
 const (
 	invalidDataType DataType = 0
 
-	DataTypeString    DataType = 1
+	DataTypeText      DataType = 1
 	DataTypeInt       DataType = 2
 	DataTypeFloat     DataType = 3
 	DataTypeTimestamp DataType = 4
@@ -18,7 +18,7 @@ const (
 )
 
 var dataTypeNames = map[DataType]string{
-	DataTypeString:    "String",
+	DataTypeText:      "Text",
 	DataTypeInt:       "Integer",
 	DataTypeFloat:     "Float",
 	DataTypeTimestamp: "Timestamp",
@@ -34,7 +34,7 @@ func (dataType DataType) String() string {
 	if name, ok := dataTypeNames[dataType]; ok {
 		return name
 	} else {
-		return "[INVALID]"
+		return "[INVALID DATA TYPE]"
 	}
 }
 

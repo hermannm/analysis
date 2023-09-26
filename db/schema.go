@@ -76,7 +76,7 @@ func deduceColumnTypeFromField(field string) (deducedType DataType, isBlank bool
 	if _, err := uuid.Parse(field); err == nil {
 		return DataTypeUUID, false
 	}
-	return DataTypeString, false
+	return DataTypeText, false
 }
 
 func (schema Schema) ConvertAndAppendRow(convertedRow []any, rawRow []string) ([]any, error) {
@@ -135,7 +135,7 @@ func convertField(field string, column Column) (convertedField any, err error) {
 			)
 		}
 		return field, nil
-	case DataTypeString:
+	case DataTypeText:
 		return field, nil
 	}
 
