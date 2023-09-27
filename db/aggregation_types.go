@@ -7,13 +7,13 @@ import (
 type AggregationType uint8
 
 const (
-	AggregationTypeSum         AggregationType = 1
-	AggregationTypeAverage     AggregationType = 2
-	AggregationTypeMax         AggregationType = 3
-	AggregationTypeMin         AggregationType = 4
-	AggregationTypeValueCount  AggregationType = 5
-	AggregationTypeCardinality AggregationType = 6
-	AggregationTypePercentiles AggregationType = 7
+	AggregationTypeSum AggregationType = iota + 1
+	AggregationTypeAverage
+	AggregationTypeMax
+	AggregationTypeMin
+	AggregationTypeValueCount
+	AggregationTypeCardinality
+	AggregationTypePercentiles
 )
 
 var aggregationTypeNames = enumnames.NewMap(map[AggregationType]string{

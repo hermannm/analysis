@@ -7,8 +7,8 @@ import (
 type Operator uint8
 
 const (
-	OperatorOR  Operator = 1
-	OperatorAND Operator = 2
+	OperatorOR Operator = iota + 1
+	OperatorAND
 )
 
 var operatorNames = enumnames.NewMap(map[Operator]string{

@@ -7,13 +7,11 @@ import (
 type DataType uint8
 
 const (
-	invalidDataType DataType = 0
-
-	DataTypeText      DataType = 1
-	DataTypeInt       DataType = 2
-	DataTypeFloat     DataType = 3
-	DataTypeTimestamp DataType = 4
-	DataTypeUUID      DataType = 5
+	DataTypeText DataType = iota + 1
+	DataTypeInt
+	DataTypeFloat
+	DataTypeTimestamp
+	DataTypeUUID
 )
 
 var dataTypeNames = enumnames.NewMap(map[DataType]string{

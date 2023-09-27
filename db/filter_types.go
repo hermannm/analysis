@@ -7,17 +7,17 @@ import (
 type FilterType uint8
 
 const (
-	FilterTypeInclude        FilterType = 1
-	FilterTypeExists         FilterType = 2
-	FilterTypeRange          FilterType = 3
-	FilterTypeExclude        FilterType = 4
-	FilterTypeSearchTerm     FilterType = 5
-	FilterTypeNumericInclude FilterType = 6
-	FilterTypeNumericExclude FilterType = 7
-	FilterTypeStaticDate     FilterType = 8
-	FilterTypePopulatedDate  FilterType = 9
-	FilterTypeBoolean        FilterType = 10
-	FilterTypeConditional    FilterType = 11
+	FilterTypeInclude FilterType = iota + 1
+	FilterTypeExists
+	FilterTypeRange
+	FilterTypeExclude
+	FilterTypeSearchTerm
+	FilterTypeNumericInclude
+	FilterTypeNumericExclude
+	FilterTypeStaticDate
+	FilterTypePopulatedDate
+	FilterTypeBoolean
+	FilterTypeConditional
 )
 
 var filterTypeNames = enumnames.NewMap(map[FilterType]string{

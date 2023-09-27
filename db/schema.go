@@ -23,10 +23,7 @@ type Column struct {
 func NewSchema(columnNames []string) Schema {
 	columns := make([]Column, 0, len(columnNames))
 	for _, columnName := range columnNames {
-		columns = append(
-			columns,
-			Column{Name: columnName, DataType: invalidDataType, Optional: false},
-		)
+		columns = append(columns, Column{Name: columnName})
 	}
 
 	return Schema{Columns: columns}
@@ -62,7 +59,7 @@ func (schema Schema) DeduceColumnTypesFromRow(row []string) error {
 
 func deduceColumnTypeFromField(field string) (deducedType DataType, isBlank bool) {
 	if field == "" {
-		return invalidDataType, true
+		return 0, true
 	}
 	if _, err := strconv.ParseInt(field, 10, 64); err == nil {
 		return DataTypeInt, false
