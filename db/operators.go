@@ -21,7 +21,7 @@ func (operator Operator) IsValid() bool {
 }
 
 func (operator Operator) String() string {
-	return operatorNames.GetNameOrFallback(operator, "[INVALID OPERATOR]")
+	return operatorNames.GetNameOrFallback(operator, "INVALID_OPERATOR")
 }
 
 func (operator Operator) MarshalJSON() ([]byte, error) {

@@ -21,17 +21,17 @@ const (
 )
 
 var filterTypeNames = enumnames.NewMap(map[FilterType]string{
-	FilterTypeInclude:        "Include",
-	FilterTypeExists:         "Exists",
-	FilterTypeRange:          "Range",
-	FilterTypeExclude:        "Exclude",
-	FilterTypeSearchTerm:     "Search term",
-	FilterTypeNumericInclude: "Numeric include",
-	FilterTypeNumericExclude: "Numeric exclude",
-	FilterTypeStaticDate:     "Static date",
-	FilterTypePopulatedDate:  "Populated date",
-	FilterTypeBoolean:        "Boolean",
-	FilterTypeConditional:    "Conditional",
+	FilterTypeInclude:        "INCLUDE",
+	FilterTypeExists:         "EXISTS",
+	FilterTypeRange:          "RANGE",
+	FilterTypeExclude:        "EXCLUDE",
+	FilterTypeSearchTerm:     "SEARCH_TERM",
+	FilterTypeNumericInclude: "NUMERIC_INCLUDE",
+	FilterTypeNumericExclude: "NUMERIC_EXCLUDE",
+	FilterTypeStaticDate:     "STATIC_DATE",
+	FilterTypePopulatedDate:  "POPULATED_DATE",
+	FilterTypeBoolean:        "BOOLEAN",
+	FilterTypeConditional:    "CONDITIONAL",
 })
 
 func (filterType FilterType) IsValid() bool {
@@ -39,7 +39,7 @@ func (filterType FilterType) IsValid() bool {
 }
 
 func (filterType FilterType) String() string {
-	return filterTypeNames.GetNameOrFallback(filterType, "[INVALID FILTER TYPE]")
+	return filterTypeNames.GetNameOrFallback(filterType, "INVALID_FILTER_TYPE")
 }
 
 func (filterType FilterType) MarshalJSON() ([]byte, error) {

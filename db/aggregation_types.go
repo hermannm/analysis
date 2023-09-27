@@ -17,13 +17,13 @@ const (
 )
 
 var aggregationTypeNames = enumnames.NewMap(map[AggregationType]string{
-	AggregationTypeSum:         "Sum",
-	AggregationTypeAverage:     "Average",
-	AggregationTypeMax:         "Max",
-	AggregationTypeMin:         "Min",
-	AggregationTypeValueCount:  "Value count",
-	AggregationTypeCardinality: "Cardinality",
-	AggregationTypePercentiles: "Percentiles",
+	AggregationTypeSum:         "SUM",
+	AggregationTypeAverage:     "AVERAGE",
+	AggregationTypeMax:         "MAX",
+	AggregationTypeMin:         "MIN",
+	AggregationTypeValueCount:  "VALUE_COUNT",
+	AggregationTypeCardinality: "CARDINALITY",
+	AggregationTypePercentiles: "PERCENTILES",
 })
 
 func (aggregationType AggregationType) IsValid() bool {
@@ -31,7 +31,7 @@ func (aggregationType AggregationType) IsValid() bool {
 }
 
 func (aggregationType AggregationType) String() string {
-	return aggregationTypeNames.GetNameOrFallback(aggregationType, "[INVALID AGGREGATION TYPE]")
+	return aggregationTypeNames.GetNameOrFallback(aggregationType, "INVALID_AGGREGATION_TYPE")
 }
 
 func (aggregationType AggregationType) MarshalJSON() ([]byte, error) {
