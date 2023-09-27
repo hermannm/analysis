@@ -1,6 +1,6 @@
 module hermannm.dev/analysis
 
-go 1.21.0
+go 1.21.1
 
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.13.4
@@ -8,6 +8,7 @@ require (
 	github.com/google/uuid v1.3.1
 	github.com/joho/godotenv v1.5.1
 	github.com/julienschmidt/httprouter v1.3.0
+	hermannm.dev/enumnames v0.1.0
 	hermannm.dev/wrap v0.2.0
 )
 
@@ -24,6 +25,6 @@ require (
 	github.com/shopspring/decimal v1.3.1 // indirect
 	go.opentelemetry.io/otel v1.17.0 // indirect
 	go.opentelemetry.io/otel/trace v1.17.0 // indirect
-	golang.org/x/sys v0.8.0 // indirect
+	golang.org/x/sys v0.12.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

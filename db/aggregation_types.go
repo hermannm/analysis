@@ -1,8 +1,7 @@
 package db
 
 import (
-	"encoding/json"
-	"errors"
+	"hermannm.dev/enumnames"
 )
 
 type AggregationType uint8
@@ -17,7 +16,7 @@ const (
 	AggregationTypePercentiles AggregationType = 7
 )
 
-var aggregationTypeNames = map[AggregationType]string{
+var aggregationTypeNames = enumnames.NewMap(map[AggregationType]string{
 	AggregationTypeSum:         "Sum",
 	AggregationTypeAverage:     "Average",
 	AggregationTypeMax:         "Max",
@@ -25,36 +24,20 @@ var aggregationTypeNames = map[AggregationType]string{
 	AggregationTypeValueCount:  "Value count",
 	AggregationTypeCardinality: "Cardinality",
 	AggregationTypePercentiles: "Percentiles",
-}
+})
 
 func (aggregationType AggregationType) IsValid() bool {
-	_, ok := aggregationTypeNames[aggregationType]
-	return ok
+	return aggregationTypeNames.ContainsEnumValue(aggregationType)
 }
 
 func (aggregationType AggregationType) String() string {
-	if name, ok := aggregationTypeNames[aggregationType]; ok {
-		return name
-	} else {
-		return "[INVALID AGGREGATION TYPE]"
-	}
+	return aggregationTypeNames.GetNameOrFallback(aggregationType, "[INVALID AGGREGATION TYPE]")
 }
 
 func (aggregationType AggregationType) MarshalJSON() ([]byte, error) {
-	if name, ok := aggregationTypeNames[aggregationType]; ok {
-		return json.Marshal(name)
-	} else {
-		return nil, errors.New("unrecognized aggregation type")
-	}
+	return aggregationTypeNames.MarshalToNameJSON(aggregationType)
 }
 
 func (aggregationType *AggregationType) UnmarshalJSON(bytes []byte) error {
-	for candidate, name := range aggregationTypeNames {
-		if name == string(bytes) {
-			*aggregationType = candidate
-			return nil
-		}
-	}
-
-	return errors.New("unrecognized aggregation type")
+	return aggregationTypeNames.UnmarshalFromNameJSON(bytes, aggregationType)
 }

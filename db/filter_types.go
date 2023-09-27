@@ -1,8 +1,7 @@
 package db
 
 import (
-	"encoding/json"
-	"errors"
+	"hermannm.dev/enumnames"
 )
 
 type FilterType uint8
@@ -21,7 +20,7 @@ const (
 	FilterTypeConditional    FilterType = 11
 )
 
-var filterTypeNames = map[FilterType]string{
+var filterTypeNames = enumnames.NewMap(map[FilterType]string{
 	FilterTypeInclude:        "Include",
 	FilterTypeExists:         "Exists",
 	FilterTypeRange:          "Range",
@@ -33,36 +32,20 @@ var filterTypeNames = map[FilterType]string{
 	FilterTypePopulatedDate:  "Populated date",
 	FilterTypeBoolean:        "Boolean",
 	FilterTypeConditional:    "Conditional",
-}
+})
 
 func (filterType FilterType) IsValid() bool {
-	_, ok := filterTypeNames[filterType]
-	return ok
+	return filterTypeNames.ContainsEnumValue(filterType)
 }
 
 func (filterType FilterType) String() string {
-	if name, ok := filterTypeNames[filterType]; ok {
-		return name
-	} else {
-		return "[INVALID FILTER TYPE]"
-	}
+	return filterTypeNames.GetNameOrFallback(filterType, "[INVALID FILTER TYPE]")
 }
 
 func (filterType FilterType) MarshalJSON() ([]byte, error) {
-	if name, ok := filterTypeNames[filterType]; ok {
-		return json.Marshal(name)
-	} else {
-		return nil, errors.New("unrecognized filter type")
-	}
+	return filterTypeNames.MarshalToNameJSON(filterType)
 }
 
 func (filterType *FilterType) UnmarshalJSON(bytes []byte) error {
-	for candidate, name := range filterTypeNames {
-		if name == string(bytes) {
-			*filterType = candidate
-			return nil
-		}
-	}
-
-	return errors.New("unrecognized filter type")
+	return filterTypeNames.UnmarshalFromNameJSON(bytes, filterType)
 }
