@@ -11,7 +11,7 @@ import (
 	"hermannm.dev/wrap"
 )
 
-// Implements db.AnalysisDB for ClickHouse
+// Implements api.AnalysisDB for ClickHouse
 type ClickHouseDB struct {
 	conn driver.Conn
 }

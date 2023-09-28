@@ -28,7 +28,7 @@ func newInnerReader(csvFile io.ReadSeeker, delimiter rune) *csv.Reader {
 	return reader
 }
 
-// Implements db.DataSource
+// Implements datatypes.DataSource
 func (reader *Reader) ReadRow() (row []string, rowNumber int, done bool, err error) {
 	reader.currentRow++
 
