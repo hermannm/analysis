@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"hermannm.dev/analysis/db"
+	"hermannm.dev/analysis/queries"
 	"hermannm.dev/wrap"
 )
 
@@ -15,7 +15,7 @@ func (db ClickHouseDB) Aggregate(
 	groupColumn string,
 	aggregationColumn string,
 	limit int,
-) (aggregates []db.Aggregate, err error) {
+) (aggregates []queries.Aggregate, err error) {
 	var query strings.Builder
 	query.WriteString("SELECT ")
 

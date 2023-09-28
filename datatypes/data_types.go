@@ -1,4 +1,4 @@
-package db
+package datatypes
 
 import (
 	"hermannm.dev/enumnames"
