@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"os"
 
 	"hermannm.dev/analysis/api"
@@ -29,7 +30,7 @@ func main() {
 		}
 	}
 
-	analysisAPI := api.NewAnalysisAPI(db, conf)
+	analysisAPI := api.NewAnalysisAPI(db, http.DefaultServeMux, conf)
 
 	log.Infof("Listening on port %s...", conf.API.Port)
 	if err := analysisAPI.ListenAndServe(); err != nil {
