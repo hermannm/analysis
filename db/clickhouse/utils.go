@@ -10,9 +10,9 @@ import (
 	"hermannm.dev/wrap"
 )
 
-func columnTypeToClickHouse(columnType db.DataType) (string, error) {
+func translateDataTypeToClickHouse(dataType db.DataType) (string, error) {
 	// See https://clickhouse.com/docs/en/sql-reference/data-types
-	switch columnType {
+	switch dataType {
 	case db.DataTypeInt:
 		return "Int64", nil
 	case db.DataTypeFloat:
@@ -25,7 +25,7 @@ func columnTypeToClickHouse(columnType db.DataType) (string, error) {
 		return "String", nil
 	}
 
-	return "", fmt.Errorf("unrecognized column type '%s'", columnType)
+	return "", fmt.Errorf("unrecognized data type '%s'", dataType)
 }
 
 func writeIdentifier(writer *strings.Builder, identifier string) error {

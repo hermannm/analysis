@@ -23,7 +23,7 @@ func (db ClickHouseDB) CreateTableSchema(
 	query.WriteString(" (`id` UUID, ")
 
 	for i, column := range schema.Columns {
-		dataType, err := columnTypeToClickHouse(column.DataType)
+		dataType, err := translateDataTypeToClickHouse(column.DataType)
 		if err != nil {
 			return wrap.Errorf(
 				err,

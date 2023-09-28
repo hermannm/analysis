@@ -8,6 +8,29 @@ import (
 
 const maxRowsToCheckForCSVSchemaDeduction = 100
 
+func (api AnalysisAPI) DeduceCSVDataTypes(res http.ResponseWriter, req *http.Request) {
+	csvFile, _, err := req.FormFile("upload")
+	if err != nil {
+		sendClientError(res, err, "failed to get file upload from request")
+		return
+	}
+	defer csvFile.Close()
+
+	csvReader, err := csv.NewReader(csvFile)
+	if err != nil {
+		sendServerError(res, err, "failed to read uploaded CSV file")
+		return
+	}
+
+	schema, err := csvReader.DeduceDataTypes(maxRowsToCheckForCSVSchemaDeduction)
+	if err != nil {
+		sendServerError(res, err, "failed to deduce data types from uploaded CSV")
+		return
+	}
+
+	sendJSON(res, schema)
+}
+
 // Endpointing for creating a new table from an uploaded CSV file.
 func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Request) {
 	csvFile, _, err := req.FormFile("upload")
@@ -29,7 +52,7 @@ func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Req
 		return
 	}
 
-	schema, err := csvReader.DeduceDataSchema(maxRowsToCheckForCSVSchemaDeduction)
+	schema, err := csvReader.DeduceDataTypes(maxRowsToCheckForCSVSchemaDeduction)
 	if err != nil {
 		sendServerError(res, err, "failed to deduce column data types from uploaded CSV")
 		return
@@ -69,7 +92,7 @@ func (api AnalysisAPI) UpdateTableWithCSV(res http.ResponseWriter, req *http.Req
 		return
 	}
 
-	schema, err := csvReader.DeduceDataSchema(maxRowsToCheckForCSVSchemaDeduction)
+	schema, err := csvReader.DeduceDataTypes(maxRowsToCheckForCSVSchemaDeduction)
 	if err != nil {
 		sendServerError(res, err, "failed to deduce column data types from uploaded CSV")
 		return

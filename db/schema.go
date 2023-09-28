@@ -29,7 +29,7 @@ func NewSchema(columnNames []string) Schema {
 	return Schema{Columns: columns}
 }
 
-func (schema Schema) DeduceColumnTypesFromRow(row []string) error {
+func (schema Schema) DeduceDataTypesFromRow(row []string) error {
 	for i, field := range row {
 		if i >= len(schema.Columns) {
 			return errors.New("row contains more fields than there are columns")
@@ -37,7 +37,7 @@ func (schema Schema) DeduceColumnTypesFromRow(row []string) error {
 
 		column := schema.Columns[i]
 
-		deducedType, isBlank := deduceColumnTypeFromField(field)
+		deducedType, isBlank := deduceDataTypeFromField(field)
 		if isBlank {
 			column.Optional = true
 		} else if !column.DataType.IsValid() {
@@ -57,7 +57,7 @@ func (schema Schema) DeduceColumnTypesFromRow(row []string) error {
 	return nil
 }
 
-func deduceColumnTypeFromField(field string) (deducedType DataType, isBlank bool) {
+func deduceDataTypeFromField(field string) (deducedType DataType, isBlank bool) {
 	if field == "" {
 		return 0, true
 	}

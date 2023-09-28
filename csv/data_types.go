@@ -5,16 +5,16 @@ import (
 	"hermannm.dev/wrap"
 )
 
-func (reader *Reader) DeduceDataSchema(maxRowsToCheck int) (schema db.Schema, err error) {
+func (reader *Reader) DeduceDataTypes(maxRowsToCheck int) (schema db.Schema, err error) {
 	// Sets reader position to just after header row before returning, so its data can be read
 	// subsequently
 	defer func() {
 		if resetErr := reader.ResetReadPosition(); resetErr != nil {
-			err = wrap.Error(resetErr, "failed to reset CSV file after deducing data schema")
+			err = wrap.Error(resetErr, "failed to reset CSV file after deducing data types")
 			return
 		}
 		if _, readErr := reader.ReadHeaderRow(); readErr != nil {
-			err = wrap.Error(err, "failed to skip CSV header row after deducing data schema")
+			err = wrap.Error(err, "failed to skip CSV header row after deducing data types")
 		}
 	}()
 
@@ -37,10 +37,10 @@ func (reader *Reader) DeduceDataSchema(maxRowsToCheck int) (schema db.Schema, er
 			return db.Schema{}, wrap.Errorf(err, "failed to read CSV file")
 		}
 
-		if err := schema.DeduceColumnTypesFromRow(row); err != nil {
+		if err := schema.DeduceDataTypesFromRow(row); err != nil {
 			return db.Schema{}, wrap.Errorf(
 				err,
-				"failed to parse CSV field types from row %d",
+				"failed to parse CSV data types from row %d",
 				rowNumber,
 			)
 		}

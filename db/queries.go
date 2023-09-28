@@ -7,10 +7,20 @@ type Query struct {
 }
 
 type Aggregation struct {
-	Field       string          `json:"field"`
-	Aggregation AggregationType `json:"aggregation"`
+	Field string          `json:"field"`
+	Type  AggregationType `json:"aggregation"`
 }
 
 type RowSplit struct{}
 
 type ColumnSplit struct{}
+
+type QueryResult struct {
+	Rows    []RowResult
+	Columns []ColumnResult
+	Totals  []float64
+}
+
+type RowResult struct{}
+
+type ColumnResult struct{}
