@@ -1,15 +1,20 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"hermannm.dev/analysis/csv"
+	"hermannm.dev/analysis/datatypes"
+	"hermannm.dev/wrap"
 )
 
 const maxRowsToCheckForCSVSchemaDeduction = 100
 
+// Expects:
+//   - multipart form field 'csvFile': CSV file to deduce types from
 func (api AnalysisAPI) DeduceCSVDataTypes(res http.ResponseWriter, req *http.Request) {
-	csvFile, _, err := req.FormFile("upload")
+	csvFile, _, err := req.FormFile("csvFile")
 	if err != nil {
 		sendClientError(res, err, "failed to get file upload from request")
 		return
@@ -31,18 +36,41 @@ func (api AnalysisAPI) DeduceCSVDataTypes(res http.ResponseWriter, req *http.Req
 	sendJSON(res, schema)
 }
 
-// Endpointing for creating a new table from an uploaded CSV file.
+// Expects:
+//   - query parameter 'table': name of table to create
+//   - multipart form field 'schema': JSON-encoded datatypes.Schema
+//   - multipart form field 'csvFile': CSV file to read data from
 func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Request) {
-	csvFile, _, err := req.FormFile("upload")
+	table := req.URL.Query().Get("table")
+	if table == "" {
+		sendClientError(res, nil, "missing 'table' query parameter in request")
+		return
+	}
+
+	var schema datatypes.Schema
+	schemaInput := req.FormValue("schema")
+	if schemaInput == "" {
+		sendClientError(res, nil, "missing 'schema' field in request")
+		return
+	}
+	if err := json.Unmarshal([]byte(schemaInput), &schema); err != nil {
+		sendClientError(res, err, "failed to parse schema from request")
+		return
+	}
+	if errs := schema.Validate(); len(errs) > 0 {
+		sendClientError(res, wrap.Errors("invalid schema", errs...), "")
+		return
+	}
+
+	csvFile, _, err := req.FormFile("csvFile")
 	if err != nil {
-		sendClientError(res, err, "failed to get file upload from request")
+		sendClientError(res, err, "failed to get CSV file from request")
 		return
 	}
 	defer csvFile.Close()
 
-	table := req.URL.Query().Get("table")
-	if table == "" {
-		sendClientError(res, nil, "missing query parameter 'table'")
+	if err := api.db.CreateTableSchema(req.Context(), table, schema); err != nil {
+		sendServerError(res, err, "failed to create table from uploaded CSV")
 		return
 	}
 
@@ -52,39 +80,28 @@ func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Req
 		return
 	}
 
-	schema, err := csvReader.DeduceDataTypes(maxRowsToCheckForCSVSchemaDeduction)
-	if err != nil {
-		sendServerError(res, err, "failed to deduce column data types from uploaded CSV")
-		return
-	}
-
-	if err := api.db.CreateTableSchema(req.Context(), table, schema); err != nil {
-		sendServerError(res, err, "failed to create table from uploaded CSV")
-		return
-	}
-
 	if err := api.db.UpdateTableData(req.Context(), table, schema, csvReader); err != nil {
 		sendServerError(res, err, "failed to insert CSV data after creating table")
 		return
 	}
-
-	sendJSON(res, schema)
 }
 
-// Endpoint for uploading CSV data to an existing table.
+// Expects:
+//   - query parameter 'table': name of table to update
+//   - multipart form field 'csvFile': CSV file to read data from
 func (api AnalysisAPI) UpdateTableWithCSV(res http.ResponseWriter, req *http.Request) {
-	csvFile, _, err := req.FormFile("upload")
-	if err != nil {
-		sendClientError(res, err, "failed to get file upload from request")
-		return
-	}
-	defer csvFile.Close()
-
 	table := req.URL.Query().Get("table")
 	if table == "" {
 		sendClientError(res, nil, "missing query parameter 'table'")
 		return
 	}
+
+	csvFile, _, err := req.FormFile("csvFile")
+	if err != nil {
+		sendClientError(res, err, "failed to get file upload from request")
+		return
+	}
+	defer csvFile.Close()
 
 	csvReader, err := csv.NewReader(csvFile)
 	if err != nil {
