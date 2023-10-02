@@ -6,22 +6,22 @@ import (
 	"strings"
 
 	clickhouseproto "github.com/ClickHouse/clickhouse-go/v2/lib/proto"
-	"hermannm.dev/analysis/datatypes"
+	"hermannm.dev/analysis/db"
 	"hermannm.dev/wrap"
 )
 
-func translateDataTypeToClickHouse(dataType datatypes.DataType) (string, error) {
+func translateDataTypeToClickHouse(dataType db.DataType) (string, error) {
 	// See https://clickhouse.com/docs/en/sql-reference/data-types
 	switch dataType {
-	case datatypes.DataTypeInt:
+	case db.DataTypeInt:
 		return "Int64", nil
-	case datatypes.DataTypeFloat:
+	case db.DataTypeFloat:
 		return "Float64", nil
-	case datatypes.DataTypeTimestamp:
+	case db.DataTypeTimestamp:
 		return "DateTime64(3)", nil
-	case datatypes.DataTypeUUID:
+	case db.DataTypeUUID:
 		return "UUID", nil
-	case datatypes.DataTypeText:
+	case db.DataTypeText:
 		return "String", nil
 	}
 

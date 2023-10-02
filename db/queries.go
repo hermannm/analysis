@@ -1,4 +1,4 @@
-package queries
+package db
 
 type Query struct {
 	ValueAggregations []ValueAggregation `json:"valueAggregations"`
@@ -52,9 +52,4 @@ type ResultMetadata struct {
 	DateInterval   DateInterval
 	// Either int64 or float64.
 	NumericKey any
-}
-
-type Aggregate struct {
-	Column string `ch:"analysis_group_column" json:"column"`
-	Sum    int64  `ch:"analysis_aggregate"    json:"sum"`
 }

@@ -1,4 +1,4 @@
-package queries
+package db
 
 import (
 	"hermannm.dev/enumnames"

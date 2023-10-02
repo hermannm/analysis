@@ -5,8 +5,9 @@ import (
 	"os"
 
 	"hermannm.dev/analysis/api"
-	"hermannm.dev/analysis/clickhouse"
 	"hermannm.dev/analysis/config"
+	"hermannm.dev/analysis/db"
+	"hermannm.dev/analysis/db/clickhouse"
 	"hermannm.dev/analysis/log"
 )
 
@@ -18,7 +19,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	var db api.AnalysisDB
+	var db db.AnalysisDB
 	switch conf.DB {
 	case config.DBClickHouse:
 		log.Info("Connecting to ClickHouse...")

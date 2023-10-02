@@ -5,14 +5,14 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"hermannm.dev/analysis/datatypes"
+	"hermannm.dev/analysis/db"
 	"hermannm.dev/wrap"
 )
 
 func (db ClickHouseDB) CreateTableSchema(
 	ctx context.Context,
 	table string,
-	schema datatypes.Schema,
+	schema db.Schema,
 ) error {
 	var query strings.Builder
 
@@ -64,8 +64,8 @@ const BatchInsertSize = 10000
 func (db ClickHouseDB) UpdateTableData(
 	ctx context.Context,
 	table string,
-	schema datatypes.Schema,
-	data datatypes.DataSource,
+	schema db.Schema,
+	data db.DataSource,
 ) error {
 	var query strings.Builder
 	query.WriteString("INSERT INTO ")

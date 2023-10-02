@@ -1,11 +1,11 @@
 package csv
 
 import (
-	"hermannm.dev/analysis/datatypes"
+	"hermannm.dev/analysis/db"
 	"hermannm.dev/wrap"
 )
 
-func (reader *Reader) DeduceDataTypes(maxRowsToCheck int) (schema datatypes.Schema, err error) {
+func (reader *Reader) DeduceDataTypes(maxRowsToCheck int) (schema db.Schema, err error) {
 	// Sets reader position to just after header row before returning, so its data can be read
 	// subsequently
 	defer func() {
@@ -20,13 +20,13 @@ func (reader *Reader) DeduceDataTypes(maxRowsToCheck int) (schema datatypes.Sche
 
 	columnNames, err := reader.ReadHeaderRow()
 	if err != nil {
-		return datatypes.Schema{}, wrap.Error(
+		return db.Schema{}, wrap.Error(
 			err,
 			"failed to read CSV column names from header row",
 		)
 	}
 
-	schema = datatypes.NewSchema(columnNames)
+	schema = db.NewSchema(columnNames)
 
 	for {
 		row, rowNumber, done, err := reader.ReadRow()
@@ -34,11 +34,11 @@ func (reader *Reader) DeduceDataTypes(maxRowsToCheck int) (schema datatypes.Sche
 			break
 		}
 		if err != nil {
-			return datatypes.Schema{}, wrap.Errorf(err, "failed to read CSV file")
+			return db.Schema{}, wrap.Errorf(err, "failed to read CSV file")
 		}
 
 		if err := schema.DeduceDataTypesFromRow(row); err != nil {
-			return datatypes.Schema{}, wrap.Errorf(
+			return db.Schema{}, wrap.Errorf(
 				err,
 				"failed to parse CSV data types from row %d",
 				rowNumber,
@@ -47,7 +47,7 @@ func (reader *Reader) DeduceDataTypes(maxRowsToCheck int) (schema datatypes.Sche
 	}
 
 	if errs := schema.Validate(); len(errs) > 0 {
-		return datatypes.Schema{}, wrap.Errors(
+		return db.Schema{}, wrap.Errors(
 			"failed to deduce data types for all given CSV columns",
 			errs...,
 		)

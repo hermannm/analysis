@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"hermannm.dev/analysis/csv"
-	"hermannm.dev/analysis/datatypes"
+	"hermannm.dev/analysis/db"
 	"hermannm.dev/wrap"
 )
 
@@ -13,6 +13,9 @@ const maxRowsToCheckForCSVSchemaDeduction = 100
 
 // Expects:
 //   - multipart form field 'csvFile': CSV file to deduce types from
+//
+// Returns:
+//   - JSON-encoded db.Schema
 func (api AnalysisAPI) DeduceCSVDataTypes(res http.ResponseWriter, req *http.Request) {
 	csvFile, _, err := req.FormFile("csvFile")
 	if err != nil {
@@ -38,7 +41,7 @@ func (api AnalysisAPI) DeduceCSVDataTypes(res http.ResponseWriter, req *http.Req
 
 // Expects:
 //   - query parameter 'table': name of table to create
-//   - multipart form field 'schema': JSON-encoded datatypes.Schema
+//   - multipart form field 'schema': JSON-encoded db.Schema
 //   - multipart form field 'csvFile': CSV file to read data from
 func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Request) {
 	table := req.URL.Query().Get("table")
@@ -47,7 +50,7 @@ func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Req
 		return
 	}
 
-	var schema datatypes.Schema
+	var schema db.Schema
 	schemaInput := req.FormValue("schema")
 	if schemaInput == "" {
 		sendClientError(res, nil, "missing 'schema' field in request")
