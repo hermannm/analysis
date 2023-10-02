@@ -2,8 +2,8 @@ package db
 
 type Query struct {
 	ValueAggregations []ValueAggregation `json:"valueAggregations"`
-	RowSplits         []RowSplit         `json:"rowSplits"`
-	ColumnSplits      []ColumnSplit      `json:"columnSplits"`
+	RowSplits         []Split            `json:"rowSplits"`
+	ColumnSplits      []Split            `json:"columnSplits"`
 }
 
 type ValueAggregation struct {
@@ -11,14 +11,7 @@ type ValueAggregation struct {
 	Aggregation Aggregation `json:"aggregation"`
 }
 
-type RowSplit struct {
-	Field       string      `json:"field"`
-	Aggregation Aggregation `json:"aggregation"`
-	SortOrder   SortOrder   `json:"sortOrder"`
-	Size        int         `json:"size"`
-}
-
-type ColumnSplit struct {
+type Split struct {
 	Field       string      `json:"field"`
 	Aggregation Aggregation `json:"aggregation"`
 	SortOrder   SortOrder   `json:"sortOrder"`
