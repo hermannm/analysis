@@ -49,7 +49,7 @@ func writeIdentifier(writer *strings.Builder, identifier string) error {
 	)
 }
 
-func (db ClickHouseDB) dropTable(
+func (clickhouse ClickHouseDB) dropTable(
 	ctx context.Context,
 	tableName string,
 ) (tableAlreadyDropped bool, err error) {
@@ -62,7 +62,7 @@ func (db ClickHouseDB) dropTable(
 	// See https://github.com/ClickHouse/ClickHouse/blob/bd387f6d2c30f67f2822244c0648f2169adab4d3/src/Common/ErrorCodes.cpp#L66
 	const clickhouseUnknownTableErrorCode = 60
 
-	if err := db.conn.Exec(ctx, query.String()); err != nil {
+	if err := clickhouse.conn.Exec(ctx, query.String()); err != nil {
 		clickHouseErr, isClickHouseErr := err.(*clickhouseproto.Exception)
 		if isClickHouseErr && clickHouseErr.Code == clickhouseUnknownTableErrorCode {
 			return true, nil

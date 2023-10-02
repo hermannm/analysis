@@ -9,7 +9,7 @@ import (
 	"hermannm.dev/wrap"
 )
 
-func (db ClickHouseDB) Aggregate(
+func (clickhouse ClickHouseDB) Aggregate(
 	ctx context.Context,
 	tableName string,
 	groupColumn string,
@@ -44,7 +44,7 @@ func (db ClickHouseDB) Aggregate(
 	query.WriteString("LIMIT ")
 	query.WriteString(strconv.Itoa(limit))
 
-	if err := db.conn.Select(ctx, &aggregates, query.String()); err != nil {
+	if err := clickhouse.conn.Select(ctx, &aggregates, query.String()); err != nil {
 		return nil, wrap.Error(err, "aggregation query failed")
 	}
 

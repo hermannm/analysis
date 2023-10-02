@@ -9,7 +9,7 @@ import (
 	"hermannm.dev/wrap"
 )
 
-func (db ClickHouseDB) CreateTable(
+func (clickhouse ClickHouseDB) CreateTable(
 	ctx context.Context,
 	table string,
 	schema db.TableSchema,
@@ -50,7 +50,7 @@ func (db ClickHouseDB) CreateTable(
 	query.WriteString(" ENGINE = MergeTree()")
 	query.WriteString(" PRIMARY KEY (id)")
 
-	if err := db.conn.Exec(ctx, query.String()); err != nil {
+	if err := clickhouse.conn.Exec(ctx, query.String()); err != nil {
 		return wrap.Error(err, "create table query failed")
 	}
 
@@ -61,7 +61,7 @@ func (db ClickHouseDB) CreateTable(
 // https://clickhouse.com/docs/en/cloud/bestpractices/bulk-inserts
 const BatchInsertSize = 10000
 
-func (db ClickHouseDB) UpdateTableData(
+func (clickhouse ClickHouseDB) UpdateTableData(
 	ctx context.Context,
 	table string,
 	schema db.TableSchema,
@@ -78,7 +78,7 @@ func (db ClickHouseDB) UpdateTableData(
 
 	allRowsSent := false
 	for !allRowsSent {
-		batch, err := db.conn.PrepareBatch(ctx, queryString)
+		batch, err := clickhouse.conn.PrepareBatch(ctx, queryString)
 		if err != nil {
 			return wrap.Error(err, "failed to prepare batch data insert")
 		}

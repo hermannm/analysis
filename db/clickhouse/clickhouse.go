@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
+	clickhousego "github.com/ClickHouse/clickhouse-go/v2"
+	clickhousedriver "github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"hermannm.dev/analysis/config"
 	"hermannm.dev/analysis/log"
 	"hermannm.dev/wrap"
@@ -13,14 +13,14 @@ import (
 
 // Implements db.AnalysisDB for ClickHouse
 type ClickHouseDB struct {
-	conn driver.Conn
+	conn clickhousedriver.Conn
 }
 
 func NewClickHouseDB(config config.Config) (ClickHouseDB, error) {
 	// Options docs: https://clickhouse.com/docs/en/integrations/go#connection-settings
-	conn, err := clickhouse.Open(&clickhouse.Options{
+	conn, err := clickhousego.Open(&clickhousego.Options{
 		Addr: []string{config.ClickHouse.Address},
-		Auth: clickhouse.Auth{
+		Auth: clickhousego.Auth{
 			Database: config.ClickHouse.DatabaseName,
 			Username: config.ClickHouse.Username,
 			Password: config.ClickHouse.Password,
@@ -29,7 +29,7 @@ func NewClickHouseDB(config config.Config) (ClickHouseDB, error) {
 		Debugf: func(format string, v ...any) {
 			fmt.Printf(format+"\n", v...)
 		},
-		Compression: &clickhouse.Compression{Method: clickhouse.CompressionLZ4},
+		Compression: &clickhousego.Compression{Method: clickhousego.CompressionLZ4},
 	})
 	if err != nil {
 		return ClickHouseDB{}, wrap.Error(err, "failed to connect to ClickHouse")
@@ -39,11 +39,11 @@ func NewClickHouseDB(config config.Config) (ClickHouseDB, error) {
 		return ClickHouseDB{}, wrap.Error(err, "failed to ping ClickHouse connection")
 	}
 
-	db := ClickHouseDB{conn: conn}
+	clickhouse := ClickHouseDB{conn: conn}
 
 	tableToDrop := config.ClickHouse.DropTableOnStartup
 	if tableToDrop != "" && !config.IsProduction {
-		tableAlreadyDropped, err := db.dropTable(context.Background(), tableToDrop)
+		tableAlreadyDropped, err := clickhouse.dropTable(context.Background(), tableToDrop)
 		if err != nil {
 			log.Errorf(
 				err,
@@ -55,5 +55,5 @@ func NewClickHouseDB(config config.Config) (ClickHouseDB, error) {
 		}
 	}
 
-	return db, nil
+	return clickhouse, nil
 }
