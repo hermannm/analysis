@@ -9,10 +9,10 @@ import (
 	"hermannm.dev/wrap"
 )
 
-func (db ClickHouseDB) CreateTableSchema(
+func (db ClickHouseDB) CreateTable(
 	ctx context.Context,
 	table string,
-	schema db.Schema,
+	schema db.TableSchema,
 ) error {
 	var query strings.Builder
 
@@ -64,7 +64,7 @@ const BatchInsertSize = 10000
 func (db ClickHouseDB) UpdateTableData(
 	ctx context.Context,
 	table string,
-	schema db.Schema,
+	schema db.TableSchema,
 	data db.DataSource,
 ) error {
 	var query strings.Builder
@@ -105,7 +105,7 @@ func (db ClickHouseDB) UpdateTableData(
 			if err != nil {
 				return wrap.Errorf(
 					err,
-					"failed to convert row %d to data types expected by schema",
+					"failed to convert row %d to data types expected by table schema",
 					rowNumber,
 				)
 			}

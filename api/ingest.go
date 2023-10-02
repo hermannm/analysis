@@ -16,8 +16,8 @@ const maxRowsToCheckForCSVSchemaDeduction = 100
 //   - multipart form field 'csvFile': CSV file to deduce types from
 //
 // Returns:
-//   - JSON-encoded db.Schema
-func (api AnalysisAPI) DeduceCSVDataTypes(res http.ResponseWriter, req *http.Request) {
+//   - JSON-encoded db.TableSchema
+func (api AnalysisAPI) DeduceCSVTableSchema(res http.ResponseWriter, req *http.Request) {
 	csvFile, _, err := req.FormFile("csvFile")
 	if err != nil {
 		sendClientError(res, err, "failed to get file upload from request")
@@ -31,9 +31,9 @@ func (api AnalysisAPI) DeduceCSVDataTypes(res http.ResponseWriter, req *http.Req
 		return
 	}
 
-	schema, err := csvReader.DeduceDataTypes(maxRowsToCheckForCSVSchemaDeduction)
+	schema, err := csvReader.DeduceTableSchema(maxRowsToCheckForCSVSchemaDeduction)
 	if err != nil {
-		sendServerError(res, err, "failed to deduce data types from uploaded CSV")
+		sendServerError(res, err, "failed to deduce table schema from uploaded CSV")
 		return
 	}
 
@@ -42,7 +42,7 @@ func (api AnalysisAPI) DeduceCSVDataTypes(res http.ResponseWriter, req *http.Req
 
 // Expects:
 //   - query parameter 'table': name of table to create
-//   - multipart form field 'schema': JSON-encoded db.Schema
+//   - multipart form field 'tableSchema': JSON-encoded db.TableSchema
 //   - multipart form field 'csvFile': CSV file to read data from
 func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Request) {
 	table := req.URL.Query().Get("table")
@@ -51,7 +51,7 @@ func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Req
 		return
 	}
 
-	schema, err := getSchemaFromRequest(req)
+	schema, err := getTableSchemaFromRequest(req)
 	if err != nil {
 		sendClientError(res, err, "")
 		return
@@ -64,7 +64,7 @@ func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Req
 	}
 	defer csvFile.Close()
 
-	if err := api.db.CreateTableSchema(req.Context(), table, schema); err != nil {
+	if err := api.db.CreateTable(req.Context(), table, schema); err != nil {
 		sendServerError(res, err, "failed to create table from uploaded CSV")
 		return
 	}
@@ -83,7 +83,7 @@ func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Req
 
 // Expects:
 //   - query parameter 'table': name of table to update
-//   - multipart form field 'schema': JSON-encoded db.Schema
+//   - multipart form field 'tableSchema': JSON-encoded db.TableSchema
 //   - multipart form field 'csvFile': CSV file to read data from
 func (api AnalysisAPI) UpdateTableWithCSV(res http.ResponseWriter, req *http.Request) {
 	table := req.URL.Query().Get("table")
@@ -92,7 +92,7 @@ func (api AnalysisAPI) UpdateTableWithCSV(res http.ResponseWriter, req *http.Req
 		return
 	}
 
-	schema, err := getSchemaFromRequest(req)
+	schema, err := getTableSchemaFromRequest(req)
 	if err != nil {
 		sendClientError(res, err, "")
 		return
@@ -117,18 +117,18 @@ func (api AnalysisAPI) UpdateTableWithCSV(res http.ResponseWriter, req *http.Req
 	}
 }
 
-func getSchemaFromRequest(req *http.Request) (db.Schema, error) {
-	var schema db.Schema
+func getTableSchemaFromRequest(req *http.Request) (db.TableSchema, error) {
+	var schema db.TableSchema
 
-	schemaInput := req.FormValue("schema")
+	schemaInput := req.FormValue("tableSchema")
 	if schemaInput == "" {
-		return db.Schema{}, errors.New("missing 'schema' field in request")
+		return db.TableSchema{}, errors.New("missing 'tableSchema' field in request")
 	}
 	if err := json.Unmarshal([]byte(schemaInput), &schema); err != nil {
-		return db.Schema{}, wrap.Error(err, "failed to parse schema from request")
+		return db.TableSchema{}, wrap.Error(err, "failed to parse table schema from request")
 	}
 	if errs := schema.Validate(); len(errs) > 0 {
-		return db.Schema{}, wrap.Errors("invalid schema", errs...)
+		return db.TableSchema{}, wrap.Errors("invalid table schema", errs...)
 	}
 
 	return schema, nil

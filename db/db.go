@@ -3,12 +3,12 @@ package db
 import "context"
 
 type AnalysisDB interface {
-	CreateTableSchema(ctx context.Context, table string, schema Schema) error
+	CreateTable(ctx context.Context, table string, schema TableSchema) error
 
 	UpdateTableData(
 		ctx context.Context,
 		table string,
-		schema Schema,
+		schema TableSchema,
 		data DataSource,
 	) error
 

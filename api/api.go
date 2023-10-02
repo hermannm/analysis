@@ -17,7 +17,7 @@ type AnalysisAPI struct {
 func NewAnalysisAPI(db db.AnalysisDB, router *http.ServeMux, config config.Config) AnalysisAPI {
 	api := AnalysisAPI{db: db, router: router, config: config.API}
 
-	api.router.HandleFunc("/deduce-csv-data-types", api.DeduceCSVDataTypes)
+	api.router.HandleFunc("/deduce-csv-table-schema", api.DeduceCSVTableSchema)
 	api.router.HandleFunc("/create-table-from-csv", api.CreateTableFromCSV)
 	api.router.HandleFunc("/update-table-with-csv", api.UpdateTableWithCSV)
 	api.router.HandleFunc("/aggregate", api.Aggregate)

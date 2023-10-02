@@ -10,7 +10,7 @@ import (
 	"hermannm.dev/wrap"
 )
 
-type Schema struct {
+type TableSchema struct {
 	Columns []Column `json:"columns"`
 }
 
@@ -20,16 +20,16 @@ type Column struct {
 	Optional bool     `json:"optional"`
 }
 
-func NewSchema(columnNames []string) Schema {
+func NewTableSchema(columnNames []string) TableSchema {
 	columns := make([]Column, 0, len(columnNames))
 	for _, columnName := range columnNames {
 		columns = append(columns, Column{Name: columnName})
 	}
 
-	return Schema{Columns: columns}
+	return TableSchema{Columns: columns}
 }
 
-func (schema Schema) DeduceDataTypesFromRow(row []string) error {
+func (schema TableSchema) DeduceDataTypesFromRow(row []string) error {
 	for i, field := range row {
 		if i >= len(schema.Columns) {
 			return errors.New("row contains more fields than there are columns")
@@ -76,9 +76,11 @@ func deduceDataTypeFromField(field string) (deducedType DataType, isBlank bool) 
 	return DataTypeText, false
 }
 
-func (schema Schema) ConvertAndAppendRow(convertedRow []any, rawRow []string) ([]any, error) {
+func (schema TableSchema) ConvertAndAppendRow(convertedRow []any, rawRow []string) ([]any, error) {
 	if len(rawRow) != len(schema.Columns) {
-		return nil, errors.New("given row has more fields than there are columns in the schema")
+		return nil, errors.New(
+			"given row has more fields than there are columns in the table schema",
+		)
 	}
 
 	for i, field := range rawRow {
@@ -139,7 +141,7 @@ func convertField(field string, column Column) (convertedField any, err error) {
 	return nil, fmt.Errorf("unrecognized data type '%s' in column", column.DataType)
 }
 
-func (schema Schema) Validate() []error {
+func (schema TableSchema) Validate() []error {
 	var errs []error
 
 	for i, column := range schema.Columns {

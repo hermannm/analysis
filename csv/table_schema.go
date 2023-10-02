@@ -5,16 +5,16 @@ import (
 	"hermannm.dev/wrap"
 )
 
-func (reader *Reader) DeduceDataTypes(maxRowsToCheck int) (schema db.Schema, err error) {
+func (reader *Reader) DeduceTableSchema(maxRowsToCheck int) (schema db.TableSchema, err error) {
 	columnNames, err := reader.ReadHeaderRow()
 	if err != nil {
-		return db.Schema{}, wrap.Error(
+		return db.TableSchema{}, wrap.Error(
 			err,
 			"failed to read CSV column names from header row",
 		)
 	}
 
-	schema = db.NewSchema(columnNames)
+	schema = db.NewTableSchema(columnNames)
 
 	for {
 		row, rowNumber, done, err := reader.ReadRow()
@@ -22,11 +22,11 @@ func (reader *Reader) DeduceDataTypes(maxRowsToCheck int) (schema db.Schema, err
 			break
 		}
 		if err != nil {
-			return db.Schema{}, wrap.Errorf(err, "failed to read CSV file")
+			return db.TableSchema{}, wrap.Errorf(err, "failed to read CSV file")
 		}
 
 		if err := schema.DeduceDataTypesFromRow(row); err != nil {
-			return db.Schema{}, wrap.Errorf(
+			return db.TableSchema{}, wrap.Errorf(
 				err,
 				"failed to parse CSV data types from row %d",
 				rowNumber,
@@ -35,7 +35,7 @@ func (reader *Reader) DeduceDataTypes(maxRowsToCheck int) (schema db.Schema, err
 	}
 
 	if errs := schema.Validate(); len(errs) > 0 {
-		return db.Schema{}, wrap.Errors(
+		return db.TableSchema{}, wrap.Errors(
 			"failed to deduce data types for all given CSV columns",
 			errs...,
 		)
