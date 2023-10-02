@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"hermannm.dev/analysis/csv"
@@ -50,18 +51,9 @@ func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Req
 		return
 	}
 
-	var schema db.Schema
-	schemaInput := req.FormValue("schema")
-	if schemaInput == "" {
-		sendClientError(res, nil, "missing 'schema' field in request")
-		return
-	}
-	if err := json.Unmarshal([]byte(schemaInput), &schema); err != nil {
-		sendClientError(res, err, "failed to parse schema from request")
-		return
-	}
-	if errs := schema.Validate(); len(errs) > 0 {
-		sendClientError(res, wrap.Errors("invalid schema", errs...), "")
+	schema, err := getSchemaFromRequest(req)
+	if err != nil {
+		sendClientError(res, err, "")
 		return
 	}
 
@@ -91,11 +83,18 @@ func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Req
 
 // Expects:
 //   - query parameter 'table': name of table to update
+//   - multipart form field 'schema': JSON-encoded db.Schema
 //   - multipart form field 'csvFile': CSV file to read data from
 func (api AnalysisAPI) UpdateTableWithCSV(res http.ResponseWriter, req *http.Request) {
 	table := req.URL.Query().Get("table")
 	if table == "" {
 		sendClientError(res, nil, "missing query parameter 'table'")
+		return
+	}
+
+	schema, err := getSchemaFromRequest(req)
+	if err != nil {
+		sendClientError(res, err, "")
 		return
 	}
 
@@ -112,14 +111,25 @@ func (api AnalysisAPI) UpdateTableWithCSV(res http.ResponseWriter, req *http.Req
 		return
 	}
 
-	schema, err := csvReader.DeduceDataTypes(maxRowsToCheckForCSVSchemaDeduction)
-	if err != nil {
-		sendServerError(res, err, "failed to deduce column data types from uploaded CSV")
-		return
-	}
-
 	if err := api.db.UpdateTableData(req.Context(), table, schema, csvReader); err != nil {
 		sendServerError(res, err, "failed to update table with uploaded CSV")
 		return
 	}
+}
+
+func getSchemaFromRequest(req *http.Request) (db.Schema, error) {
+	var schema db.Schema
+
+	schemaInput := req.FormValue("schema")
+	if schemaInput == "" {
+		return db.Schema{}, errors.New("missing 'schema' field in request")
+	}
+	if err := json.Unmarshal([]byte(schemaInput), &schema); err != nil {
+		return db.Schema{}, wrap.Error(err, "failed to parse schema from request")
+	}
+	if errs := schema.Validate(); len(errs) > 0 {
+		return db.Schema{}, wrap.Errors("invalid schema", errs...)
+	}
+
+	return schema, nil
 }
