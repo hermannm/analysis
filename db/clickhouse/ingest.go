@@ -2,6 +2,7 @@ package clickhouse
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -14,43 +15,39 @@ func (clickhouse ClickHouseDB) CreateTable(
 	table string,
 	schema db.TableSchema,
 ) error {
-	var query strings.Builder
+	var builder strings.Builder
 
-	query.WriteString("CREATE TABLE ")
-	if err := writeIdentifier(&query, table); err != nil {
+	builder.WriteString("CREATE TABLE ")
+	if err := writeIdentifier(&builder, table); err != nil {
 		return wrap.Error(err, "invalid table name")
 	}
-	query.WriteString(" (`id` UUID, ")
+	builder.WriteString(" (`id` UUID, ")
 
 	for i, column := range schema.Columns {
-		dataType, err := translateDataTypeToClickHouse(column.DataType)
-		if err != nil {
-			return wrap.Errorf(
-				err,
-				"failed to get ClickHouse data type for column '%s'",
-				column.Name,
-			)
-		}
-
-		if err := writeIdentifier(&query, column.Name); err != nil {
+		if err := writeIdentifier(&builder, column.Name); err != nil {
 			return wrap.Error(err, "invalid column name")
 		}
-		query.WriteRune(' ')
-		query.WriteString(dataType)
+		builder.WriteRune(' ')
+
+		dataType, ok := clickhouseDataTypes.GetName(column.DataType)
+		if !ok {
+			return fmt.Errorf("invalid data type '%v' in column '%s'", column.DataType, column.Name)
+		}
+		builder.WriteString(dataType)
 
 		if column.Optional {
-			query.WriteString(" NULL")
+			builder.WriteString(" NULL")
 		}
 
 		if i != len(schema.Columns)-1 {
-			query.WriteString(", ")
+			builder.WriteString(", ")
 		}
 	}
-	query.WriteRune(')')
-	query.WriteString(" ENGINE = MergeTree()")
-	query.WriteString(" PRIMARY KEY (id)")
+	builder.WriteRune(')')
+	builder.WriteString(" ENGINE = MergeTree()")
+	builder.WriteString(" PRIMARY KEY (id)")
 
-	if err := clickhouse.conn.Exec(ctx, query.String()); err != nil {
+	if err := clickhouse.conn.Exec(ctx, builder.String()); err != nil {
 		return wrap.Error(err, "create table query failed")
 	}
 
@@ -67,12 +64,12 @@ func (clickhouse ClickHouseDB) UpdateTableData(
 	schema db.TableSchema,
 	data db.DataSource,
 ) error {
-	var query strings.Builder
-	query.WriteString("INSERT INTO ")
-	if err := writeIdentifier(&query, table); err != nil {
+	var builder strings.Builder
+	builder.WriteString("INSERT INTO ")
+	if err := writeIdentifier(&builder, table); err != nil {
 		return wrap.Error(err, "invalid table name")
 	}
-	queryString := query.String()
+	queryString := builder.String()
 
 	fieldsPerRow := len(schema.Columns) + 1 // +1 for id field
 
