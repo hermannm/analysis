@@ -12,6 +12,8 @@ type AnalysisDB interface {
 		data DataSource,
 	) error
 
+	Query(ctx context.Context, query Query, table string, schema TableSchema) (QueryResult, error)
+
 	Aggregate(
 		ctx context.Context,
 		tableName string,

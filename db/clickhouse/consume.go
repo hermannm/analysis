@@ -2,12 +2,22 @@ package clickhouse
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"strings"
 
 	"hermannm.dev/analysis/db"
 	"hermannm.dev/wrap"
 )
+
+func (clickhouse ClickHouseDB) Query(
+	ctx context.Context,
+	query db.Query,
+	table string,
+	schema db.TableSchema,
+) (db.QueryResult, error) {
+	return db.QueryResult{}, errors.New("not implemented")
+}
 
 func (clickhouse ClickHouseDB) Aggregate(
 	ctx context.Context,
