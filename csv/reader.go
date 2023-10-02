@@ -4,6 +4,8 @@ import (
 	"encoding/csv"
 	"errors"
 	"io"
+
+	"hermannm.dev/wrap"
 )
 
 type Reader struct {
@@ -12,13 +14,21 @@ type Reader struct {
 	currentRow int
 }
 
-func NewReader(csvFile io.ReadSeeker) (*Reader, error) {
+func NewReader(csvFile io.ReadSeeker, skipHeaderRow bool) (*Reader, error) {
 	delimiter, err := DeduceFieldDelimiter(csvFile, 20, DefaultDelimitersToCheck)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Reader{inner: newInnerReader(csvFile, delimiter), file: csvFile, currentRow: 0}, nil
+	reader := &Reader{inner: newInnerReader(csvFile, delimiter), file: csvFile, currentRow: 0}
+
+	if skipHeaderRow {
+		if _, err := reader.ReadHeaderRow(); err != nil {
+			return nil, wrap.Error(err, "failed to skip CSV header row")
+		}
+	}
+
+	return reader, nil
 }
 
 func newInnerReader(csvFile io.ReadSeeker, delimiter rune) *csv.Reader {

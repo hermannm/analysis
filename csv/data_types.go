@@ -6,18 +6,6 @@ import (
 )
 
 func (reader *Reader) DeduceDataTypes(maxRowsToCheck int) (schema db.Schema, err error) {
-	// Sets reader position to just after header row before returning, so its data can be read
-	// subsequently
-	defer func() {
-		if resetErr := reader.ResetReadPosition(); resetErr != nil {
-			err = wrap.Error(resetErr, "failed to reset CSV file after deducing data types")
-			return
-		}
-		if _, readErr := reader.ReadHeaderRow(); readErr != nil {
-			err = wrap.Error(err, "failed to skip CSV header row after deducing data types")
-		}
-	}()
-
 	columnNames, err := reader.ReadHeaderRow()
 	if err != nil {
 		return db.Schema{}, wrap.Error(

@@ -25,7 +25,7 @@ func (api AnalysisAPI) DeduceCSVDataTypes(res http.ResponseWriter, req *http.Req
 	}
 	defer csvFile.Close()
 
-	csvReader, err := csv.NewReader(csvFile)
+	csvReader, err := csv.NewReader(csvFile, false)
 	if err != nil {
 		sendServerError(res, err, "failed to read uploaded CSV file")
 		return
@@ -69,7 +69,7 @@ func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Req
 		return
 	}
 
-	csvReader, err := csv.NewReader(csvFile)
+	csvReader, err := csv.NewReader(csvFile, true)
 	if err != nil {
 		sendServerError(res, err, "failed to read uploaded CSV file")
 		return
@@ -105,7 +105,7 @@ func (api AnalysisAPI) UpdateTableWithCSV(res http.ResponseWriter, req *http.Req
 	}
 	defer csvFile.Close()
 
-	csvReader, err := csv.NewReader(csvFile)
+	csvReader, err := csv.NewReader(csvFile, true)
 	if err != nil {
 		sendServerError(res, nil, "failed to read uploaded CSV file")
 		return
