@@ -16,7 +16,7 @@ const (
 	AggregationPercentiles
 )
 
-var aggregationTypeNames = enumnames.NewMap(map[Aggregation]string{
+var aggregationMap = enumnames.NewMap(map[Aggregation]string{
 	AggregationSum:         "SUM",
 	AggregationAverage:     "AVERAGE",
 	AggregationMax:         "MAX",
@@ -27,17 +27,17 @@ var aggregationTypeNames = enumnames.NewMap(map[Aggregation]string{
 })
 
 func (aggregationType Aggregation) IsValid() bool {
-	return aggregationTypeNames.ContainsEnumValue(aggregationType)
+	return aggregationMap.ContainsEnumValue(aggregationType)
 }
 
 func (aggregationType Aggregation) String() string {
-	return aggregationTypeNames.GetNameOrFallback(aggregationType, "INVALID_AGGREGATION_TYPE")
+	return aggregationMap.GetNameOrFallback(aggregationType, "INVALID_AGGREGATION_TYPE")
 }
 
 func (aggregationType Aggregation) MarshalJSON() ([]byte, error) {
-	return aggregationTypeNames.MarshalToNameJSON(aggregationType)
+	return aggregationMap.MarshalToNameJSON(aggregationType)
 }
 
 func (aggregationType *Aggregation) UnmarshalJSON(bytes []byte) error {
-	return aggregationTypeNames.UnmarshalFromNameJSON(bytes, aggregationType)
+	return aggregationMap.UnmarshalFromNameJSON(bytes, aggregationType)
 }

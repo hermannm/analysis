@@ -12,7 +12,7 @@ const (
 	DateIntervalDay
 )
 
-var dateIntervalNames = enumnames.NewMap(map[DateInterval]string{
+var dateIntervalMap = enumnames.NewMap(map[DateInterval]string{
 	DateIntervalYear:    "YEAR",
 	DateIntervalQuarter: "QUARTER",
 	DateIntervalMonth:   "MONTH",
@@ -21,17 +21,17 @@ var dateIntervalNames = enumnames.NewMap(map[DateInterval]string{
 })
 
 func (dateInterval DateInterval) IsValid() bool {
-	return dateIntervalNames.ContainsEnumValue(dateInterval)
+	return dateIntervalMap.ContainsEnumValue(dateInterval)
 }
 
 func (dateInterval DateInterval) String() string {
-	return dateIntervalNames.GetNameOrFallback(dateInterval, "INVALID_DATE_INTERVAL")
+	return dateIntervalMap.GetNameOrFallback(dateInterval, "INVALID_DATE_INTERVAL")
 }
 
 func (dateInterval DateInterval) MarshalJSON() ([]byte, error) {
-	return dateIntervalNames.MarshalToNameJSON(dateInterval)
+	return dateIntervalMap.MarshalToNameJSON(dateInterval)
 }
 
 func (dateInterval *DateInterval) UnmarshalJSON(bytes []byte) error {
-	return dateIntervalNames.UnmarshalFromNameJSON(bytes, dateInterval)
+	return dateIntervalMap.UnmarshalFromNameJSON(bytes, dateInterval)
 }

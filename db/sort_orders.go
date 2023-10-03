@@ -9,23 +9,23 @@ const (
 	SortOrderDescending
 )
 
-var sortOrderNames = enumnames.NewMap(map[SortOrder]string{
+var sortOrderMap = enumnames.NewMap(map[SortOrder]string{
 	SortOrderAscending:  "ASCENDING",
 	SortOrderDescending: "DESCENDING",
 })
 
 func (sortOrder SortOrder) IsValid() bool {
-	return sortOrderNames.ContainsEnumValue(sortOrder)
+	return sortOrderMap.ContainsEnumValue(sortOrder)
 }
 
 func (sortOrder SortOrder) String() string {
-	return sortOrderNames.GetNameOrFallback(sortOrder, "INVALID_SORT_ORDER")
+	return sortOrderMap.GetNameOrFallback(sortOrder, "INVALID_SORT_ORDER")
 }
 
 func (sortOrder SortOrder) MarshalJSON() ([]byte, error) {
-	return sortOrderNames.MarshalToNameJSON(sortOrder)
+	return sortOrderMap.MarshalToNameJSON(sortOrder)
 }
 
 func (sortOrder *SortOrder) UnmarshalJSON(bytes []byte) error {
-	return sortOrderNames.UnmarshalFromNameJSON(bytes, sortOrder)
+	return sortOrderMap.UnmarshalFromNameJSON(bytes, sortOrder)
 }

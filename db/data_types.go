@@ -14,7 +14,7 @@ const (
 	DataTypeUUID
 )
 
-var dataTypeNames = enumnames.NewMap(map[DataType]string{
+var dataTypeMap = enumnames.NewMap(map[DataType]string{
 	DataTypeText:      "TEXT",
 	DataTypeInt:       "INTEGER",
 	DataTypeFloat:     "FLOAT",
@@ -23,17 +23,17 @@ var dataTypeNames = enumnames.NewMap(map[DataType]string{
 })
 
 func (dataType DataType) IsValid() bool {
-	return dataTypeNames.ContainsEnumValue(dataType)
+	return dataTypeMap.ContainsEnumValue(dataType)
 }
 
 func (dataType DataType) String() string {
-	return dataTypeNames.GetNameOrFallback(dataType, "INVALID_DATA_TYPE")
+	return dataTypeMap.GetNameOrFallback(dataType, "INVALID_DATA_TYPE")
 }
 
 func (dataType DataType) MarshalJSON() ([]byte, error) {
-	return dataTypeNames.MarshalToNameJSON(dataType)
+	return dataTypeMap.MarshalToNameJSON(dataType)
 }
 
 func (dataType *DataType) UnmarshalJSON(bytes []byte) error {
-	return dataTypeNames.UnmarshalFromNameJSON(bytes, dataType)
+	return dataTypeMap.UnmarshalFromNameJSON(bytes, dataType)
 }

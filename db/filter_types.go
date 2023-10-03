@@ -20,7 +20,7 @@ const (
 	FilterTypeConditional
 )
 
-var filterTypeNames = enumnames.NewMap(map[FilterType]string{
+var filterTypeMap = enumnames.NewMap(map[FilterType]string{
 	FilterTypeInclude:        "INCLUDE",
 	FilterTypeExists:         "EXISTS",
 	FilterTypeRange:          "RANGE",
@@ -35,17 +35,17 @@ var filterTypeNames = enumnames.NewMap(map[FilterType]string{
 })
 
 func (filterType FilterType) IsValid() bool {
-	return filterTypeNames.ContainsEnumValue(filterType)
+	return filterTypeMap.ContainsEnumValue(filterType)
 }
 
 func (filterType FilterType) String() string {
-	return filterTypeNames.GetNameOrFallback(filterType, "INVALID_FILTER_TYPE")
+	return filterTypeMap.GetNameOrFallback(filterType, "INVALID_FILTER_TYPE")
 }
 
 func (filterType FilterType) MarshalJSON() ([]byte, error) {
-	return filterTypeNames.MarshalToNameJSON(filterType)
+	return filterTypeMap.MarshalToNameJSON(filterType)
 }
 
 func (filterType *FilterType) UnmarshalJSON(bytes []byte) error {
-	return filterTypeNames.UnmarshalFromNameJSON(bytes, filterType)
+	return filterTypeMap.UnmarshalFromNameJSON(bytes, filterType)
 }
