@@ -9,36 +9,44 @@ import (
 	"hermannm.dev/wrap"
 )
 
-func writeIdentifier(builder *strings.Builder, identifier string) error {
+func escapeIdentifier(identifier string) (escaped string, err error) {
 	if !strings.ContainsRune(identifier, '`') {
-		builder.WriteRune('`')
-		builder.WriteString(identifier)
-		builder.WriteRune('`')
-		return nil
+		return fmt.Sprintf("`%s`", identifier), nil
+	} else if !strings.ContainsRune(identifier, '"') {
+		return fmt.Sprintf(`"%s"`, identifier), nil
+	} else {
+		return "", fmt.Errorf(
+			"'%s' contains both \" and `, which is incompatible with database",
+			identifier,
+		)
+	}
+}
+
+func escapeIdentifiers(identifiers ...*string) error {
+	for _, identifier := range identifiers {
+		escaped, err := escapeIdentifier(*identifier)
+		if err != nil {
+			return err
+		}
+
+		*identifier = escaped
 	}
 
-	if !strings.ContainsRune(identifier, '"') {
-		builder.WriteRune('"')
-		builder.WriteString(identifier)
-		builder.WriteRune('"')
-		return nil
-	}
-
-	return fmt.Errorf(
-		"'%s' contains both \" and `, which is incompatible with database",
-		identifier,
-	)
+	return nil
 }
 
 func (clickhouse ClickHouseDB) dropTable(
 	ctx context.Context,
 	tableName string,
 ) (tableAlreadyDropped bool, err error) {
-	var builder strings.Builder
-	builder.WriteString("DROP TABLE ")
-	if err := writeIdentifier(&builder, tableName); err != nil {
+	tableName, err = escapeIdentifier(tableName)
+	if err != nil {
 		return false, wrap.Error(err, "invalid table name")
 	}
+
+	var builder strings.Builder
+	builder.WriteString("DROP TABLE ")
+	builder.WriteString(tableName)
 
 	// See https://github.com/ClickHouse/ClickHouse/blob/bd387f6d2c30f67f2822244c0648f2169adab4d3/src/Common/ErrorCodes.cpp#L66
 	const clickhouseUnknownTableErrorCode = 60

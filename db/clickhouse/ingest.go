@@ -15,18 +15,23 @@ func (clickhouse ClickHouseDB) CreateTable(
 	table string,
 	schema db.TableSchema,
 ) error {
+	table, err := escapeIdentifier(table)
+	if err != nil {
+		return wrap.Error(err, "invalid table name")
+	}
+
 	var builder strings.Builder
 
 	builder.WriteString("CREATE TABLE ")
-	if err := writeIdentifier(&builder, table); err != nil {
-		return wrap.Error(err, "invalid table name")
-	}
+	builder.WriteString(table)
 	builder.WriteString(" (`id` UUID, ")
 
 	for i, column := range schema.Columns {
-		if err := writeIdentifier(&builder, column.Name); err != nil {
+		columnName, err := escapeIdentifier(column.Name)
+		if err != nil {
 			return wrap.Error(err, "invalid column name")
 		}
+		builder.WriteString(columnName)
 		builder.WriteRune(' ')
 
 		dataType, ok := clickhouseDataTypes.GetName(column.DataType)
@@ -64,11 +69,14 @@ func (clickhouse ClickHouseDB) UpdateTableData(
 	schema db.TableSchema,
 	data db.DataSource,
 ) error {
-	var builder strings.Builder
-	builder.WriteString("INSERT INTO ")
-	if err := writeIdentifier(&builder, table); err != nil {
+	table, err := escapeIdentifier(table)
+	if err != nil {
 		return wrap.Error(err, "invalid table name")
 	}
+
+	var builder strings.Builder
+	builder.WriteString("INSERT INTO ")
+	builder.WriteString(table)
 	queryString := builder.String()
 
 	fieldsPerRow := len(schema.Columns) + 1 // +1 for id field
