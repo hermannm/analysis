@@ -9,21 +9,17 @@ type Aggregation uint8
 const (
 	AggregationSum Aggregation = iota + 1
 	AggregationAverage
-	AggregationMax
 	AggregationMin
-	AggregationValueCount
-	AggregationCardinality
-	AggregationPercentiles
+	AggregationMax
+	AggregationCount
 )
 
 var aggregationMap = enumnames.NewMap(map[Aggregation]string{
-	AggregationSum:         "SUM",
-	AggregationAverage:     "AVERAGE",
-	AggregationMax:         "MAX",
-	AggregationMin:         "MIN",
-	AggregationValueCount:  "VALUE_COUNT",
-	AggregationCardinality: "CARDINALITY",
-	AggregationPercentiles: "PERCENTILES",
+	AggregationSum:     "SUM",
+	AggregationAverage: "AVERAGE",
+	AggregationMin:     "MIN",
+	AggregationMax:     "MAX",
+	AggregationCount:   "COUNT",
 })
 
 func (aggregationType Aggregation) IsValid() bool {

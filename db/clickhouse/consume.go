@@ -16,6 +16,47 @@ func (clickhouse ClickHouseDB) Query(
 	table string,
 	schema db.TableSchema,
 ) (db.QueryResult, error) {
+	if err := escapeIdentifiers(
+		&table,
+		&query.ColumnSplit.ColumnName,
+		&query.RowSplit.ColumnName,
+		&query.ValueAggregation.ColumnName,
+	); err != nil {
+		return db.QueryResult{}, wrap.Error(err, "invalid identifier in query")
+	}
+
+	var builder strings.Builder
+	builder.WriteString("SELECT ")
+	builder.WriteString(query.ColumnSplit.ColumnName)
+	builder.WriteString(" AS column_split, ")
+	builder.WriteString(query.RowSplit.ColumnName)
+	builder.WriteString(" AS row_split, ")
+
+	aggregation, ok := clickhouseAggregations.GetName(query.ValueAggregation.Aggregation)
+	if !ok {
+		return db.QueryResult{}, errors.New(
+			"invalid aggregation type for value aggregation in query",
+		)
+	}
+	builder.WriteString(aggregation)
+
+	builder.WriteRune('(')
+	builder.WriteString(query.ValueAggregation.ColumnName)
+	builder.WriteString(") AS value_aggregation ")
+
+	builder.WriteString("FROM ")
+	builder.WriteString(table)
+
+	builder.WriteString(" GROUP BY ")
+	builder.WriteString(query.ColumnSplit.ColumnName)
+	builder.WriteString(", ")
+	builder.WriteString(query.RowSplit.ColumnName)
+
+	_, err := clickhouse.conn.Query(ctx, builder.String())
+	if err != nil {
+		return db.QueryResult{}, wrap.Error(err, "ClickHouse query failed")
+	}
+
 	return db.QueryResult{}, errors.New("not implemented")
 }
 
