@@ -16,18 +16,18 @@ func (clickhouse ClickHouseDB) Query(
 ) (db.QueryResult, error) {
 	if err := ValidateIdentifiers(
 		table,
-		query.ColumnSplit.ColumnName,
-		query.RowSplit.ColumnName,
-		query.ValueAggregation.ColumnName,
+		query.ColumnSplit.BaseColumnName,
+		query.RowSplit.BaseColumnName,
+		query.ValueAggregation.BaseColumnName,
 	); err != nil {
 		return db.QueryResult{}, wrap.Error(err, "invalid identifier in query")
 	}
 
 	var builder QueryBuilder
 	builder.WriteString("SELECT ")
-	builder.WriteIdentifier(query.ColumnSplit.ColumnName)
+	builder.WriteSplit(query.ColumnSplit)
 	builder.WriteString(" AS column_split, ")
-	builder.WriteIdentifier(query.RowSplit.ColumnName)
+	builder.WriteSplit(query.RowSplit)
 	builder.WriteString(" AS row_split, ")
 
 	aggregation, ok := clickhouseAggregations.GetName(query.ValueAggregation.Aggregation)
@@ -39,16 +39,30 @@ func (clickhouse ClickHouseDB) Query(
 	builder.WriteString(aggregation)
 
 	builder.WriteRune('(')
-	builder.WriteIdentifier(query.ValueAggregation.ColumnName)
+	builder.WriteIdentifier(query.ValueAggregation.BaseColumnName)
 	builder.WriteString(") AS value_aggregation ")
 
 	builder.WriteString("FROM ")
 	builder.WriteIdentifier(table)
 
-	builder.WriteString(" GROUP BY ")
-	builder.WriteIdentifier(query.ColumnSplit.ColumnName)
-	builder.WriteString(", ")
-	builder.WriteIdentifier(query.RowSplit.ColumnName)
+	builder.WriteString(" GROUP BY column_split, row_split")
+
+	builder.WriteString(" SORT BY column_split ")
+	sortOrder, ok := clickhouseSortOrders.GetName(query.ColumnSplit.SortOrder)
+	if !ok {
+		return db.QueryResult{}, errors.New("invalid sort order for column split")
+	}
+	builder.WriteString(sortOrder)
+
+	builder.WriteString(", row_split ")
+	sortOrder, ok = clickhouseSortOrders.GetName(query.ColumnSplit.SortOrder)
+	if !ok {
+		return db.QueryResult{}, errors.New("invalid sort order for row split")
+	}
+	builder.WriteString(sortOrder)
+
+	builder.WriteString(" LIMIT ")
+	builder.WriteInt(query.ColumnSplit.Limit * query.RowSplit.Limit)
 
 	_, err := clickhouse.conn.Query(ctx, builder.String())
 	if err != nil {

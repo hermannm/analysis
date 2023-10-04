@@ -7,15 +7,22 @@ type Query struct {
 }
 
 type ValueAggregation struct {
-	ColumnName  string      `json:"columnName"`
-	Aggregation Aggregation `json:"aggregation"`
+	BaseColumnName     string      `json:"baseColumnName"`
+	BaseColumnDataType DataType    `json:"baseColumnDataType"`
+	Aggregation        Aggregation `json:"aggregation"`
 }
 
 type Split struct {
-	ColumnName  string      `json:"columnName"`
-	Aggregation Aggregation `json:"aggregation"`
-	SortOrder   SortOrder   `json:"sortOrder"`
-	Size        int         `json:"size"`
+	BaseColumnName     string    `json:"baseColumnName"`
+	BaseColumnDataType DataType  `json:"baseColumnDataType"`
+	SortOrder          SortOrder `json:"sortOrder"`
+	Limit              int       `json:"limit"`
+	// Only valid if BaseColumnDataType is INTEGER.
+	IntegerInterval int `json:"numberIntervalInt"`
+	// Only valid if BaseColumnDataType is FLOAT.
+	FloatInterval float64 `json:"numberIntervalFloat"`
+	// Only valid if BaseColumnDataType is TIMESTAMP.
+	DateInterval *DateInterval `json:"dateInterval,omitempty"`
 }
 
 type QueryResult struct {
