@@ -3,7 +3,10 @@ package clickhouse
 import (
 	"context"
 	"errors"
+	"fmt"
+	"time"
 
+	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"hermannm.dev/analysis/db"
 	"hermannm.dev/wrap"
 )
@@ -14,13 +17,45 @@ func (clickhouse ClickHouseDB) Query(
 	table string,
 	schema db.TableSchema,
 ) (db.QueryResult, error) {
+	queryString, err := buildQueryString(query, table)
+	if err != nil {
+		return db.QueryResult{}, wrap.Error(err, "failed to parse query")
+	}
+
+	results, err := clickhouse.conn.Query(ctx, queryString)
+	if err != nil {
+		return db.QueryResult{}, wrap.Error(err, "failed to execute query on database")
+	}
+
+	parsedResults, err := parseQueryResult(results, query)
+	if err != nil {
+		return db.QueryResult{}, wrap.Error(err, "failed to parse query results")
+	}
+
+	return parsedResults, nil
+}
+
+func buildQueryString(query db.Query, table string) (string, error) {
+	if query.ColumnSplit.Limit == 0 || query.RowSplit.Limit == 0 {
+		return "", errors.New("column/row split limit cannot be 0")
+	}
+
+	switch query.ValueAggregation.BaseColumnDataType {
+	case db.DataTypeInt, db.DataTypeFloat:
+	default:
+		return "", fmt.Errorf(
+			"value aggregation can only be done on INTEGER or FLOAT columns, not %v",
+			query.ValueAggregation.BaseColumnDataType,
+		)
+	}
+
 	if err := ValidateIdentifiers(
 		table,
 		query.ColumnSplit.BaseColumnName,
 		query.RowSplit.BaseColumnName,
 		query.ValueAggregation.BaseColumnName,
 	); err != nil {
-		return db.QueryResult{}, wrap.Error(err, "invalid identifier in query")
+		return "", wrap.Error(err, "invalid identifier in query")
 	}
 
 	var builder QueryBuilder
@@ -32,9 +67,7 @@ func (clickhouse ClickHouseDB) Query(
 
 	aggregation, ok := clickhouseAggregations.GetName(query.ValueAggregation.Aggregation)
 	if !ok {
-		return db.QueryResult{}, errors.New(
-			"invalid aggregation type for value aggregation in query",
-		)
+		return "", errors.New("invalid aggregation type for value aggregation in query")
 	}
 	builder.WriteString(aggregation)
 
@@ -50,26 +83,189 @@ func (clickhouse ClickHouseDB) Query(
 	builder.WriteString(" SORT BY column_split ")
 	sortOrder, ok := clickhouseSortOrders.GetName(query.ColumnSplit.SortOrder)
 	if !ok {
-		return db.QueryResult{}, errors.New("invalid sort order for column split")
+		return "", errors.New("invalid sort order for column split")
 	}
 	builder.WriteString(sortOrder)
 
 	builder.WriteString(", row_split ")
 	sortOrder, ok = clickhouseSortOrders.GetName(query.ColumnSplit.SortOrder)
 	if !ok {
-		return db.QueryResult{}, errors.New("invalid sort order for row split")
+		return "", errors.New("invalid sort order for row split")
 	}
 	builder.WriteString(sortOrder)
 
 	builder.WriteString(" LIMIT ")
 	builder.WriteInt(query.ColumnSplit.Limit * query.RowSplit.Limit)
 
-	_, err := clickhouse.conn.Query(ctx, builder.String())
-	if err != nil {
-		return db.QueryResult{}, wrap.Error(err, "ClickHouse query failed")
+	return builder.String(), nil
+}
+
+func parseQueryResult(results driver.Rows, query db.Query) (db.QueryResult, error) {
+	queryResult := db.QueryResult{
+		ValueAggregationDataType: query.ValueAggregation.BaseColumnDataType,
+		Rows:                     make([]db.RowResult, query.RowSplit.Limit),
+		RowsMeta:                 query.RowSplit.SplitMetadata,
+		Columns:                  make([]db.ColumnResult, query.ColumnSplit.Limit),
+		ColumnsMeta:              query.ColumnSplit.SplitMetadata,
 	}
 
-	return db.QueryResult{}, errors.New("not implemented")
+	rowResultIndex := 0
+	columnResultIndex := 0
+
+	for results.Next() {
+		valueAggregation := getEmptyFieldResultPointer(queryResult.ValueAggregationDataType)
+		columnValue := getEmptyFieldResultPointer(queryResult.ColumnsMeta.BaseColumnDataType)
+		rowValue := getEmptyFieldResultPointer(queryResult.RowsMeta.BaseColumnDataType)
+		if valueAggregation == nil || columnValue == nil || rowValue == nil {
+			return db.QueryResult{}, errors.New(
+				"unhandled data types in query result initialization",
+			)
+		}
+
+		if err := results.Scan(valueAggregation, columnValue, rowValue); err != nil {
+			return db.QueryResult{}, wrap.Error(err, "failed to scan result row")
+		}
+
+		columnResult := queryResult.Columns[columnResultIndex]
+		rowResult := queryResult.Rows[rowResultIndex]
+
+		if err := useResult(columnValue, queryResult.ColumnsMeta.BaseColumnDataType, func(value any) error {
+			if columnResultIndex == 0 {
+				columnResult.BaseColumnValue = value
+			} else if value != columnResult.BaseColumnValue {
+				columnResultIndex++
+				columnResult = queryResult.Columns[columnResultIndex]
+				columnResult.BaseColumnValue = value
+			}
+			return nil
+		}); err != nil {
+			return db.QueryResult{}, err
+		}
+
+		if err := useResult(rowValue, queryResult.RowsMeta.BaseColumnDataType, func(value any) error {
+			if rowResultIndex == 0 {
+				rowResult.BaseColumnValue = value
+			} else if value != rowResult.BaseColumnValue {
+				rowResultIndex++
+				rowResult = queryResult.Rows[rowResultIndex]
+				rowResult.BaseColumnValue = value
+			}
+			return nil
+		}); err != nil {
+			return db.QueryResult{}, err
+		}
+
+		if err := useResult(valueAggregation, queryResult.ValueAggregationDataType, func(value any) error {
+			valuesPtr := &queryResult.Rows[rowResultIndex].Values
+			valuesSize := query.ColumnSplit.Limit
+
+			var ok bool
+			switch queryResult.ValueAggregationDataType {
+			case db.DataTypeInt:
+				ok = convertAndInsertValue[int64](valuesPtr, valuesSize, columnResultIndex, value)
+			case db.DataTypeFloat:
+				ok = convertAndInsertValue[float64](valuesPtr, valuesSize, columnResultIndex, value)
+			default:
+				return fmt.Errorf("invalid value aggregation data type %v", queryResult.ValueAggregationDataType)
+			}
+			if !ok {
+				return fmt.Errorf(
+					"failed to convert field with data type %v",
+					queryResult.ValueAggregationDataType,
+				)
+			}
+
+			return nil
+		}); err != nil {
+			return db.QueryResult{}, err
+		}
+
+		queryResult.Columns[columnResultIndex] = columnResult
+		queryResult.Rows[rowResultIndex] = rowResult
+	}
+
+	return queryResult, nil
+}
+
+func convertAndInsertValue[T interface{ int64 | float64 }](
+	valuesPointer *any,
+	valuesSize int,
+	indexToInsertAt int,
+	value any,
+) (ok bool) {
+	untypedValues := *valuesPointer
+	var typedValues []T
+	if untypedValues == nil {
+		typedValues = make([]T, valuesSize)
+	} else {
+		var ok bool
+		typedValues, ok = untypedValues.([]T)
+		if !ok {
+			return false
+		}
+	}
+
+	typedValue, ok := value.(T)
+	if !ok {
+		return false
+	}
+
+	typedValues[indexToInsertAt] = typedValue
+	*valuesPointer = typedValues
+
+	return true
+}
+
+// Returns nil for unhandled data types.
+func getEmptyFieldResultPointer(dataType db.DataType) any {
+	switch dataType {
+	case db.DataTypeText:
+		var value string
+		return &value
+	case db.DataTypeInt:
+		var value int64
+		return &value
+	case db.DataTypeFloat:
+		var value float64
+		return &value
+	case db.DataTypeTimestamp:
+		var value time.Time
+		return &value
+	case db.DataTypeUUID:
+		var value string
+		return &value
+	default:
+		return nil
+	}
+}
+
+func useResult(resultPointer any, dataType db.DataType, useFunc func(value any) error) error {
+	switch dataType {
+	case db.DataTypeText:
+		if ptr, ok := resultPointer.(*string); ok {
+			return useFunc(*ptr)
+		}
+	case db.DataTypeInt:
+		if ptr, ok := resultPointer.(*int64); ok {
+			return useFunc(*ptr)
+		}
+	case db.DataTypeFloat:
+		if ptr, ok := resultPointer.(*float64); ok {
+			return useFunc(*ptr)
+		}
+	case db.DataTypeTimestamp:
+		if ptr, ok := resultPointer.(*time.Time); ok {
+			return useFunc(*ptr)
+		}
+	case db.DataTypeUUID:
+		if ptr, ok := resultPointer.(*string); ok {
+			return useFunc(*ptr)
+		}
+	default:
+		return fmt.Errorf("unrecognized data type %v", dataType)
+	}
+
+	return fmt.Errorf("failed to convert field value to data type %v", dataType)
 }
 
 func (clickhouse ClickHouseDB) Aggregate(
