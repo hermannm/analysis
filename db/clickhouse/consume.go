@@ -3,8 +3,6 @@ package clickhouse
 import (
 	"context"
 	"errors"
-	"strconv"
-	"strings"
 
 	"hermannm.dev/analysis/db"
 	"hermannm.dev/wrap"
@@ -16,20 +14,20 @@ func (clickhouse ClickHouseDB) Query(
 	table string,
 	schema db.TableSchema,
 ) (db.QueryResult, error) {
-	if err := escapeIdentifiers(
-		&table,
-		&query.ColumnSplit.ColumnName,
-		&query.RowSplit.ColumnName,
-		&query.ValueAggregation.ColumnName,
+	if err := ValidateIdentifiers(
+		table,
+		query.ColumnSplit.ColumnName,
+		query.RowSplit.ColumnName,
+		query.ValueAggregation.ColumnName,
 	); err != nil {
 		return db.QueryResult{}, wrap.Error(err, "invalid identifier in query")
 	}
 
-	var builder strings.Builder
+	var builder QueryBuilder
 	builder.WriteString("SELECT ")
-	builder.WriteString(query.ColumnSplit.ColumnName)
+	builder.WriteIdentifier(query.ColumnSplit.ColumnName)
 	builder.WriteString(" AS column_split, ")
-	builder.WriteString(query.RowSplit.ColumnName)
+	builder.WriteIdentifier(query.RowSplit.ColumnName)
 	builder.WriteString(" AS row_split, ")
 
 	aggregation, ok := clickhouseAggregations.GetName(query.ValueAggregation.Aggregation)
@@ -41,16 +39,16 @@ func (clickhouse ClickHouseDB) Query(
 	builder.WriteString(aggregation)
 
 	builder.WriteRune('(')
-	builder.WriteString(query.ValueAggregation.ColumnName)
+	builder.WriteIdentifier(query.ValueAggregation.ColumnName)
 	builder.WriteString(") AS value_aggregation ")
 
 	builder.WriteString("FROM ")
-	builder.WriteString(table)
+	builder.WriteIdentifier(table)
 
 	builder.WriteString(" GROUP BY ")
-	builder.WriteString(query.ColumnSplit.ColumnName)
+	builder.WriteIdentifier(query.ColumnSplit.ColumnName)
 	builder.WriteString(", ")
-	builder.WriteString(query.RowSplit.ColumnName)
+	builder.WriteIdentifier(query.RowSplit.ColumnName)
 
 	_, err := clickhouse.conn.Query(ctx, builder.String())
 	if err != nil {
@@ -62,37 +60,37 @@ func (clickhouse ClickHouseDB) Query(
 
 func (clickhouse ClickHouseDB) Aggregate(
 	ctx context.Context,
-	tableName string,
+	table string,
 	groupColumn string,
 	aggregationColumn string,
 	limit int,
 ) (aggregates []db.Aggregate, err error) {
-	if err := escapeIdentifiers(
-		&tableName,
-		&groupColumn,
-		&aggregationColumn,
+	if err := ValidateIdentifiers(
+		table,
+		groupColumn,
+		aggregationColumn,
 	); err != nil {
-		return nil, wrap.Error(err, "invalid identifier in aggregate query")
+		return nil, wrap.Error(err, "invalid table/column name in aggregate query")
 	}
 
-	var builder strings.Builder
+	var builder QueryBuilder
 	builder.WriteString("SELECT ")
-	builder.WriteString(groupColumn)
+	builder.WriteIdentifier(groupColumn)
 	builder.WriteString(" AS analysis_group_column, ")
 
 	builder.WriteString("SUM(")
-	builder.WriteString(aggregationColumn)
+	builder.WriteIdentifier(aggregationColumn)
 	builder.WriteString(") AS analysis_aggregate ")
 
 	builder.WriteString("FROM ")
-	builder.WriteString(tableName)
+	builder.WriteIdentifier(table)
 
 	builder.WriteString(" GROUP BY ")
-	builder.WriteString(groupColumn)
+	builder.WriteIdentifier(groupColumn)
 
 	builder.WriteString(" ORDER BY analysis_aggregate DESC ")
 	builder.WriteString("LIMIT ")
-	builder.WriteString(strconv.Itoa(limit))
+	builder.WriteInt(limit)
 
 	if err := clickhouse.conn.Select(ctx, &aggregates, builder.String()); err != nil {
 		return nil, wrap.Error(err, "aggregation query failed")

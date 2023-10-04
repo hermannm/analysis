@@ -3,7 +3,6 @@ package clickhouse
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/google/uuid"
 	"hermannm.dev/analysis/db"
@@ -15,23 +14,20 @@ func (clickhouse ClickHouseDB) CreateTable(
 	table string,
 	schema db.TableSchema,
 ) error {
-	table, err := escapeIdentifier(table)
-	if err != nil {
+	if err := ValidateIdentifier(table); err != nil {
 		return wrap.Error(err, "invalid table name")
 	}
 
-	var builder strings.Builder
-
+	var builder QueryBuilder
 	builder.WriteString("CREATE TABLE ")
-	builder.WriteString(table)
+	builder.WriteIdentifier(table)
 	builder.WriteString(" (`id` UUID, ")
 
 	for i, column := range schema.Columns {
-		columnName, err := escapeIdentifier(column.Name)
-		if err != nil {
+		if err := ValidateIdentifier(column.Name); err != nil {
 			return wrap.Error(err, "invalid column name")
 		}
-		builder.WriteString(columnName)
+		builder.WriteIdentifier(column.Name)
 		builder.WriteRune(' ')
 
 		dataType, ok := clickhouseDataTypes.GetName(column.DataType)
@@ -69,14 +65,13 @@ func (clickhouse ClickHouseDB) UpdateTableData(
 	schema db.TableSchema,
 	data db.DataSource,
 ) error {
-	table, err := escapeIdentifier(table)
-	if err != nil {
+	if err := ValidateIdentifier(table); err != nil {
 		return wrap.Error(err, "invalid table name")
 	}
 
-	var builder strings.Builder
+	var builder QueryBuilder
 	builder.WriteString("INSERT INTO ")
-	builder.WriteString(table)
+	builder.WriteIdentifier(table)
 	queryString := builder.String()
 
 	fieldsPerRow := len(schema.Columns) + 1 // +1 for id field
