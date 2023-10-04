@@ -1,7 +1,6 @@
 # analysis
 
-New implementation of the Analysis service from the Ignite Procurement platform. Built as part of
-hermannm's master's thesis in Computer Science.
+An API server letting users upload CSV data and perform analytical queries on it, using either ClickHouse or Elasticsearch as the backing database. Built as part of hermannm's master's thesis in Computer Science.
 
 ## Local setup
 
