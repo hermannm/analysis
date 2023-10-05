@@ -57,6 +57,10 @@ func buildQueryString(query db.Query, table string) (string, error) {
 	}
 
 	var builder QueryBuilder
+
+	// Outer select, to sort the final result by column/row split values
+	builder.WriteString("SELECT * FROM (")
+
 	builder.WriteString("SELECT ")
 	builder.WriteSplit(query.ColumnSplit)
 	builder.WriteString(" AS column_split, ")
@@ -77,6 +81,12 @@ func buildQueryString(query db.Query, table string) (string, error) {
 	builder.WriteIdentifier(table)
 
 	builder.WriteString(" GROUP BY column_split, row_split")
+	builder.WriteString(" ORDER BY value_aggregation")
+
+	builder.WriteString(" LIMIT ")
+	builder.WriteInt(query.ColumnSplit.Limit * query.RowSplit.Limit)
+
+	builder.WriteRune(')') // Closing outer select
 
 	builder.WriteString(" ORDER BY column_split ")
 	sortOrder, ok := clickhouseSortOrders.GetName(query.ColumnSplit.SortOrder)
@@ -91,9 +101,6 @@ func buildQueryString(query db.Query, table string) (string, error) {
 		return "", errors.New("invalid sort order for row split")
 	}
 	builder.WriteString(sortOrder)
-
-	builder.WriteString(" LIMIT ")
-	builder.WriteInt(query.ColumnSplit.Limit * query.RowSplit.Limit)
 
 	return builder.String(), nil
 }
