@@ -1,6 +1,7 @@
 package db
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -61,4 +62,12 @@ func (dynValue *dynamicValue[T]) Value() any {
 
 func (dynValue *dynamicValue[T]) Pointer() any {
 	return &dynValue.value
+}
+
+func (dynValue dynamicValue[T]) MarshalJSON() ([]byte, error) {
+	return json.Marshal(dynValue.value)
+}
+
+func (dynValue *dynamicValue[T]) UnmarshalJSON(bytes []byte) error {
+	return json.Unmarshal(bytes, &dynValue.value)
 }
