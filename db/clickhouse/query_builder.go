@@ -62,15 +62,15 @@ DataTypeSwitch:
 			// https://clickhouse.com/docs/en/sql-reference/functions/date-time-functions#tostartofyear
 			switch dateInterval {
 			case db.DateIntervalYear:
-				builder.WriteString("(toStartOfYear(")
+				builder.WriteString("toStartOfYear(")
 			case db.DateIntervalQuarter:
-				builder.WriteString("(toStartOfQuarter(")
+				builder.WriteString("toStartOfQuarter(")
 			case db.DateIntervalMonth:
-				builder.WriteString("(toStartOfMonth(")
+				builder.WriteString("toStartOfMonth(")
 			case db.DateIntervalWeek:
-				builder.WriteString("(toStartOfWeek(")
+				builder.WriteString("toStartOfWeek(")
 			case db.DateIntervalDay:
-				builder.WriteString("(toStartOfDay(")
+				builder.WriteString("toStartOfDay(")
 			default:
 				log.Warnf("unhandled date interval type '%d'", dateInterval)
 				break DataTypeSwitch

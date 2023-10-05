@@ -15,7 +15,6 @@ func (clickhouse ClickHouseDB) Query(
 	ctx context.Context,
 	query db.Query,
 	table string,
-	schema db.TableSchema,
 ) (db.QueryResult, error) {
 	queryString, err := buildQueryString(query, table)
 	if err != nil {
@@ -80,7 +79,7 @@ func buildQueryString(query db.Query, table string) (string, error) {
 
 	builder.WriteString(" GROUP BY column_split, row_split")
 
-	builder.WriteString(" SORT BY column_split ")
+	builder.WriteString(" ORDER BY column_split ")
 	sortOrder, ok := clickhouseSortOrders.GetName(query.ColumnSplit.SortOrder)
 	if !ok {
 		return "", errors.New("invalid sort order for column split")
