@@ -13,30 +13,25 @@ type DynamicValue interface {
 	Pointer() any
 }
 
-func NewDynamicValue(dataType DataType) (DynamicValue, error) {
-	switch dataType {
-	case DataTypeText:
-		return newDynamicValue[string](), nil
-	case DataTypeInt:
-		return newDynamicValue[int64](), nil
-	case DataTypeFloat:
-		return newDynamicValue[float64](), nil
-	case DataTypeTimestamp:
-		return newDynamicValue[time.Time](), nil
-	case DataTypeUUID:
-		return newDynamicValue[string](), nil
-	default:
-		return nil, fmt.Errorf("unrecognized data type %v", dataType)
-	}
-}
-
 type dynamicValue[T comparable] struct {
 	value T
 }
 
-func newDynamicValue[T comparable]() *dynamicValue[T] {
-	var value T
-	return &dynamicValue[T]{value: value}
+func NewDynamicValue(dataType DataType) (DynamicValue, error) {
+	switch dataType {
+	case DataTypeText:
+		return &dynamicValue[string]{}, nil
+	case DataTypeInt:
+		return &dynamicValue[int64]{}, nil
+	case DataTypeFloat:
+		return &dynamicValue[float64]{}, nil
+	case DataTypeTimestamp:
+		return &dynamicValue[time.Time]{}, nil
+	case DataTypeUUID:
+		return &dynamicValue[string]{}, nil
+	default:
+		return nil, fmt.Errorf("unrecognized data type %v", dataType)
+	}
 }
 
 func (dynValue *dynamicValue[T]) Set(value any) (ok bool) {

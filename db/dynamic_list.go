@@ -10,29 +10,25 @@ type DynamicList interface {
 	Append(item any) (ok bool)
 }
 
-func NewDynamicList(dataType DataType, capacity int) (DynamicList, error) {
-	switch dataType {
-	case DataTypeText:
-		return newDynamicList[string](capacity), nil
-	case DataTypeInt:
-		return newDynamicList[int64](capacity), nil
-	case DataTypeFloat:
-		return newDynamicList[float64](capacity), nil
-	case DataTypeTimestamp:
-		return newDynamicList[time.Time](capacity), nil
-	case DataTypeUUID:
-		return newDynamicList[string](capacity), nil
-	default:
-		return nil, fmt.Errorf("unrecognized data type %v", dataType)
-	}
-}
-
 type dynamicList[T any] struct {
 	items []T
 }
 
-func newDynamicList[T any](capacity int) *dynamicList[T] {
-	return &dynamicList[T]{make([]T, 0, capacity)}
+func NewDynamicList(dataType DataType, capacity int) (DynamicList, error) {
+	switch dataType {
+	case DataTypeText:
+		return &dynamicList[string]{}, nil
+	case DataTypeInt:
+		return &dynamicList[int64]{}, nil
+	case DataTypeFloat:
+		return &dynamicList[float64]{}, nil
+	case DataTypeTimestamp:
+		return &dynamicList[time.Time]{}, nil
+	case DataTypeUUID:
+		return &dynamicList[string]{}, nil
+	default:
+		return nil, fmt.Errorf("unrecognized data type %v", dataType)
+	}
 }
 
 func (list *dynamicList[T]) Append(item any) (ok bool) {
