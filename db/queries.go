@@ -40,9 +40,8 @@ type QueryResult struct {
 }
 
 type RowResult struct {
-	BaseColumnValue any `json:"baseColumnValue"`
-	// Either []int64 or []float64.
-	Values any `json:"values"`
+	BaseColumnValue any         `json:"baseColumnValue"`
+	Values          DynamicList `json:"values"`
 	// Either int64 or float64 (same as the type of Values).
 	Total any `json:"total"`
 }

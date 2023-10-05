@@ -108,6 +108,22 @@ func parseQueryResult(results driver.Rows, query db.Query) (db.QueryResult, erro
 		ColumnsMeta:              query.ColumnSplit.SplitMetadata,
 	}
 
+	for i, row := range queryResult.Rows {
+		list, err := db.NewDynamicList(
+			query.ValueAggregation.BaseColumnDataType,
+			query.ColumnSplit.Limit,
+		)
+		if err != nil {
+			return db.QueryResult{}, wrap.Error(
+				err,
+				"failed to initialize query result values list",
+			)
+		}
+
+		row.Values = list
+		queryResult.Rows[i] = row
+	}
+
 	rowResultIndex := 0
 	columnResultIndex := 0
 
@@ -155,25 +171,12 @@ func parseQueryResult(results driver.Rows, query db.Query) (db.QueryResult, erro
 		}
 
 		if err := useResult(valueAggregation, queryResult.ValueAggregationDataType, func(value any) error {
-			valuesPtr := &queryResult.Rows[rowResultIndex].Values
-			valuesSize := query.ColumnSplit.Limit
-
-			var ok bool
-			switch queryResult.ValueAggregationDataType {
-			case db.DataTypeInt:
-				ok = convertAndInsertValue[int64](valuesPtr, valuesSize, columnResultIndex, value)
-			case db.DataTypeFloat:
-				ok = convertAndInsertValue[float64](valuesPtr, valuesSize, columnResultIndex, value)
-			default:
-				return fmt.Errorf("invalid value aggregation data type %v", queryResult.ValueAggregationDataType)
-			}
-			if !ok {
+			if ok := rowResult.Values.Append(value); !ok {
 				return fmt.Errorf(
 					"failed to convert field with data type %v",
 					queryResult.ValueAggregationDataType,
 				)
 			}
-
 			return nil
 		}); err != nil {
 			return db.QueryResult{}, err
@@ -184,35 +187,6 @@ func parseQueryResult(results driver.Rows, query db.Query) (db.QueryResult, erro
 	}
 
 	return queryResult, nil
-}
-
-func convertAndInsertValue[T interface{ int64 | float64 }](
-	valuesPointer *any,
-	valuesSize int,
-	indexToInsertAt int,
-	value any,
-) (ok bool) {
-	untypedValues := *valuesPointer
-	var typedValues []T
-	if untypedValues == nil {
-		typedValues = make([]T, valuesSize)
-	} else {
-		var ok bool
-		typedValues, ok = untypedValues.([]T)
-		if !ok {
-			return false
-		}
-	}
-
-	typedValue, ok := value.(T)
-	if !ok {
-		return false
-	}
-
-	typedValues[indexToInsertAt] = typedValue
-	*valuesPointer = typedValues
-
-	return true
 }
 
 // Returns nil for unhandled data types.
