@@ -112,16 +112,16 @@ func parseQueryResult(results driver.Rows, query db.Query) (db.QueryResult, erro
 	columnResultIndex := 0
 
 	for results.Next() {
-		valueAggregation := getEmptyFieldResultPointer(queryResult.ValueAggregationDataType)
 		columnValue := getEmptyFieldResultPointer(queryResult.ColumnsMeta.BaseColumnDataType)
 		rowValue := getEmptyFieldResultPointer(queryResult.RowsMeta.BaseColumnDataType)
-		if valueAggregation == nil || columnValue == nil || rowValue == nil {
+		valueAggregation := getEmptyFieldResultPointer(queryResult.ValueAggregationDataType)
+		if columnValue == nil || rowValue == nil || valueAggregation == nil {
 			return db.QueryResult{}, errors.New(
 				"unhandled data types in query result initialization",
 			)
 		}
 
-		if err := results.Scan(valueAggregation, columnValue, rowValue); err != nil {
+		if err := results.Scan(columnValue, rowValue, valueAggregation); err != nil {
 			return db.QueryResult{}, wrap.Error(err, "failed to scan result row")
 		}
 
