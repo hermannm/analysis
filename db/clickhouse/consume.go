@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"hermannm.dev/analysis/db"
@@ -100,145 +99,28 @@ func buildQueryString(query db.Query, table string) (string, error) {
 }
 
 func parseQueryResult(results driver.Rows, query db.Query) (db.QueryResult, error) {
-	queryResult := db.QueryResult{
-		ValueAggregationDataType: query.ValueAggregation.BaseColumnDataType,
-		Rows:                     make([]db.RowResult, query.RowSplit.Limit),
-		RowsMeta:                 query.RowSplit.SplitMetadata,
-		Columns:                  make([]db.ColumnResult, query.ColumnSplit.Limit),
-		ColumnsMeta:              query.ColumnSplit.SplitMetadata,
-	}
-
-	for i, row := range queryResult.Rows {
-		list, err := db.NewDynamicList(
-			query.ValueAggregation.BaseColumnDataType,
-			query.ColumnSplit.Limit,
-		)
-		if err != nil {
-			return db.QueryResult{}, wrap.Error(
-				err,
-				"failed to initialize query result values list",
-			)
-		}
-
-		row.Values = list
-		queryResult.Rows[i] = row
-	}
-
-	rowResultIndex := 0
-	columnResultIndex := 0
+	queryResult := db.InitializeQueryResult(query)
 
 	for results.Next() {
-		columnValue := getEmptyFieldResultPointer(queryResult.ColumnsMeta.BaseColumnDataType)
-		rowValue := getEmptyFieldResultPointer(queryResult.RowsMeta.BaseColumnDataType)
-		valueAggregation := getEmptyFieldResultPointer(queryResult.ValueAggregationDataType)
-		if columnValue == nil || rowValue == nil || valueAggregation == nil {
-			return db.QueryResult{}, errors.New(
-				"unhandled data types in query result initialization",
-			)
+		resultHandle, err := queryResult.NewResultHandle()
+		if err != nil {
+			return db.QueryResult{}, wrap.Error(err, "failed to initialize result handle")
 		}
 
-		if err := results.Scan(columnValue, rowValue, valueAggregation); err != nil {
+		if err := results.Scan(
+			resultHandle.ColumnValue.Pointer(),
+			resultHandle.RowValue.Pointer(),
+			resultHandle.ValueAggregation.Pointer(),
+		); err != nil {
 			return db.QueryResult{}, wrap.Error(err, "failed to scan result row")
 		}
 
-		columnResult := queryResult.Columns[columnResultIndex]
-		rowResult := queryResult.Rows[rowResultIndex]
-
-		if err := useResult(columnValue, queryResult.ColumnsMeta.BaseColumnDataType, func(value any) error {
-			if columnResultIndex == 0 {
-				columnResult.BaseColumnValue = value
-			} else if value != columnResult.BaseColumnValue {
-				columnResultIndex++
-				columnResult = queryResult.Columns[columnResultIndex]
-				columnResult.BaseColumnValue = value
-			}
-			return nil
-		}); err != nil {
-			return db.QueryResult{}, err
+		if err := queryResult.ParseResult(resultHandle); err != nil {
+			return db.QueryResult{}, wrap.Error(err, "failed to parse results from database")
 		}
-
-		if err := useResult(rowValue, queryResult.RowsMeta.BaseColumnDataType, func(value any) error {
-			if rowResultIndex == 0 {
-				rowResult.BaseColumnValue = value
-			} else if value != rowResult.BaseColumnValue {
-				rowResultIndex++
-				rowResult = queryResult.Rows[rowResultIndex]
-				rowResult.BaseColumnValue = value
-			}
-			return nil
-		}); err != nil {
-			return db.QueryResult{}, err
-		}
-
-		if err := useResult(valueAggregation, queryResult.ValueAggregationDataType, func(value any) error {
-			if ok := rowResult.Values.Append(value); !ok {
-				return fmt.Errorf(
-					"failed to convert field with data type %v",
-					queryResult.ValueAggregationDataType,
-				)
-			}
-			return nil
-		}); err != nil {
-			return db.QueryResult{}, err
-		}
-
-		queryResult.Columns[columnResultIndex] = columnResult
-		queryResult.Rows[rowResultIndex] = rowResult
 	}
 
 	return queryResult, nil
-}
-
-// Returns nil for unhandled data types.
-func getEmptyFieldResultPointer(dataType db.DataType) any {
-	switch dataType {
-	case db.DataTypeText:
-		var value string
-		return &value
-	case db.DataTypeInt:
-		var value int64
-		return &value
-	case db.DataTypeFloat:
-		var value float64
-		return &value
-	case db.DataTypeTimestamp:
-		var value time.Time
-		return &value
-	case db.DataTypeUUID:
-		var value string
-		return &value
-	default:
-		return nil
-	}
-}
-
-func useResult(resultPointer any, dataType db.DataType, useFunc func(value any) error) error {
-	switch dataType {
-	case db.DataTypeText:
-		if ptr, ok := resultPointer.(*string); ok {
-			return useFunc(*ptr)
-		}
-	case db.DataTypeInt:
-		if ptr, ok := resultPointer.(*int64); ok {
-			return useFunc(*ptr)
-		}
-	case db.DataTypeFloat:
-		if ptr, ok := resultPointer.(*float64); ok {
-			return useFunc(*ptr)
-		}
-	case db.DataTypeTimestamp:
-		if ptr, ok := resultPointer.(*time.Time); ok {
-			return useFunc(*ptr)
-		}
-	case db.DataTypeUUID:
-		if ptr, ok := resultPointer.(*string); ok {
-			return useFunc(*ptr)
-		}
-	default:
-		return fmt.Errorf("unrecognized data type %v", dataType)
-	}
-
-	return fmt.Errorf("failed to convert field value to data type %v", dataType)
 }
 
 func (clickhouse ClickHouseDB) Aggregate(
