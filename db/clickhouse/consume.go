@@ -99,7 +99,7 @@ func buildQueryString(query db.Query, table string) (string, error) {
 }
 
 func parseQueryResult(results driver.Rows, query db.Query) (db.QueryResult, error) {
-	queryResult := db.InitializeQueryResult(query)
+	queryResult := db.NewQueryResult(query)
 
 	for results.Next() {
 		resultHandle, err := queryResult.NewResultHandle()
