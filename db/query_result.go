@@ -8,13 +8,13 @@ import (
 )
 
 type QueryResult struct {
-	ValueAggregationDataType DataType `json:"valueAggregationDataType"`
-
 	Rows     []RowResult `json:"rows"`
 	RowsMeta Split       `json:"rowsMeta"`
 
 	Columns     []ColumnResult `json:"columns"`
 	ColumnsMeta Split          `json:"columnsMeta"`
+
+	ValueAggregationDataType DataType `json:"valueAggregationDataType"`
 }
 
 type RowResult struct {
