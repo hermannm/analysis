@@ -18,12 +18,12 @@ type QueryResult struct {
 }
 
 type RowResult struct {
-	BaseFieldValue   DBValue     `json:"baseFieldValue"`
+	FieldValue       DBValue     `json:"fieldValue"`
 	AggregatedValues DBValueList `json:"aggregatedValues"`
 }
 
 type ColumnResult struct {
-	BaseFieldValue DBValue `json:"baseFieldValue"`
+	FieldValue DBValue `json:"fieldValue"`
 }
 
 type ResultHandle struct {
@@ -87,18 +87,18 @@ func (queryResult *QueryResult) GetOrCreateRowResult(
 	rowValue any,
 ) (rowResult RowResult, index int, err error) {
 	for i, candidate := range queryResult.Rows {
-		if candidate.BaseFieldValue.Equals(rowValue) {
+		if candidate.FieldValue.Equals(rowValue) {
 			return candidate, i, nil
 		}
 	}
 
 	baseColumnValue, err := NewDBValue(queryResult.RowsMeta.BaseColumnDataType)
 	if err != nil {
-		return RowResult{}, 0, wrap.Error(err, "failed to initialize base column value")
+		return RowResult{}, 0, wrap.Error(err, "failed to initialize row field value")
 	}
 	if ok := baseColumnValue.Set(rowValue); !ok {
 		return RowResult{}, 0, fmt.Errorf(
-			"failed to set base column value of type %v to value '%v'",
+			"failed to set row field value of type %v to '%v'",
 			queryResult.RowsMeta.BaseColumnDataType,
 			rowValue,
 		)
@@ -113,7 +113,7 @@ func (queryResult *QueryResult) GetOrCreateRowResult(
 	}
 
 	rowResult = RowResult{
-		BaseFieldValue:   baseColumnValue,
+		FieldValue:       baseColumnValue,
 		AggregatedValues: aggregatedValues,
 	}
 	queryResult.Rows = append(queryResult.Rows, rowResult)
@@ -122,25 +122,25 @@ func (queryResult *QueryResult) GetOrCreateRowResult(
 
 func (queryResult *QueryResult) InitializeColumnResult(columnValue any) error {
 	if len(queryResult.Columns) > 0 {
-		currentColumnValue := queryResult.Columns[queryResult.currentColumnIndex()].BaseFieldValue
+		currentColumnValue := queryResult.Columns[queryResult.currentColumnIndex()].FieldValue
 		if currentColumnValue.Equals(columnValue) {
 			return nil
 		}
 	}
 
-	baseColumnValue, err := NewDBValue(queryResult.ColumnsMeta.BaseColumnDataType)
+	fieldValue, err := NewDBValue(queryResult.ColumnsMeta.BaseColumnDataType)
 	if err != nil {
-		return wrap.Error(err, "failed to initialize base column value")
+		return wrap.Error(err, "failed to initialize column field value")
 	}
-	if ok := baseColumnValue.Set(columnValue); !ok {
+	if ok := fieldValue.Set(columnValue); !ok {
 		return fmt.Errorf(
-			"failed to set base column value of type %v to value '%v'",
+			"failed to set column field value of type %v to '%v'",
 			queryResult.ColumnsMeta.BaseColumnDataType,
 			columnValue,
 		)
 	}
 
-	columnResult := ColumnResult{BaseFieldValue: baseColumnValue}
+	columnResult := ColumnResult{FieldValue: fieldValue}
 	queryResult.Columns = append(queryResult.Columns, columnResult)
 	return nil
 }
