@@ -1,6 +1,7 @@
 package clickhouse
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -26,6 +27,19 @@ func (builder *QueryBuilder) WriteIdentifier(identifier string) {
 	builder.WriteRune('`')
 	builder.WriteString(identifier)
 	builder.WriteRune('`')
+}
+
+func (builder *QueryBuilder) WriteAggregation(valueAggregation db.ValueAggregation) error {
+	aggregation, ok := clickhouseAggregations.GetName(valueAggregation.Aggregation)
+	if !ok {
+		return errors.New("invalid aggregation type for value aggregation in query")
+	}
+	builder.WriteString(aggregation)
+
+	builder.WriteRune('(')
+	builder.WriteIdentifier(valueAggregation.BaseColumnName)
+	builder.WriteRune(')')
+	return nil
 }
 
 func (builder *QueryBuilder) WriteSplit(split db.Split) {
