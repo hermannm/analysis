@@ -34,11 +34,11 @@ type ResultHandle struct {
 
 func NewQueryResult(query Query) QueryResult {
 	return QueryResult{
-		ValueAggregationDataType: query.ValueAggregation.BaseColumnDataType,
 		Rows:                     make([]RowResult, 0, query.RowSplit.Limit),
 		RowsMeta:                 query.RowSplit,
 		Columns:                  make([]ColumnResult, 0, query.ColumnSplit.Limit),
 		ColumnsMeta:              query.ColumnSplit,
+		ValueAggregationDataType: query.ValueAggregation.BaseColumnDataType,
 	}
 }
 
