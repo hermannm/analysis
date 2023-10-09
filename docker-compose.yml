@@ -4,8 +4,9 @@ services:
     container_name: clickhouse
     image: "clickhouse/clickhouse-server:${CLICKHOUSE_VERSION:-latest}"
     user: "101:101"
-    hostname: clickhouse-01
+    hostname: clickhouse
     volumes:
+      - clickhouse_data:/var/lib/clickhouse/
       - ${PWD}/config/clickhouse-config.xml:/etc/clickhouse-server/config.d/config.xml
       - ${PWD}/config/clickhouse-users.xml:/etc/clickhouse-server/users.d/users.xml
     ports:
@@ -14,9 +15,16 @@ services:
   elasticsearch:
     container_name: elasticsearch
     image: "elasticsearch:${ELASTICSEARCH_VERSION:-latest}"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
     ports:
       - 9200:9200
       - 9300:9300
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
+volumes:
+  clickhouse_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
