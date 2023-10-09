@@ -1,9 +1,9 @@
 version: "3.8"
 services:
-  clickhouse-01:
+  clickhouse:
+    container_name: clickhouse
     image: "clickhouse/clickhouse-server:${CLICKHOUSE_VERSION:-latest}"
     user: "101:101"
-    container_name: clickhouse-01
     hostname: clickhouse-01
     volumes:
       - ${PWD}/config/clickhouse-config.xml:/etc/clickhouse-server/config.d/config.xml
@@ -11,3 +11,12 @@ services:
     ports:
       - "127.0.0.1:8123:8123"
       - "127.0.0.1:9000:9000"
+  elasticsearch:
+    container_name: elasticsearch
+    image: "elasticsearch:${ELASTICSEARCH_VERSION:-latest}"
+    ports:
+      - 9200:9200
+      - 9300:9300
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
