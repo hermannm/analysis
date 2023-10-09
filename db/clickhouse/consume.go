@@ -7,6 +7,7 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"hermannm.dev/analysis/db"
+	"hermannm.dev/analysis/log"
 	"hermannm.dev/wrap"
 )
 
@@ -19,6 +20,8 @@ func (clickhouse ClickHouseDB) Query(
 	if err != nil {
 		return db.QueryResult{}, wrap.Error(err, "failed to parse query")
 	}
+
+	log.Infof("Generated query:\n%s", queryString)
 
 	results, err := clickhouse.conn.Query(ctx, queryString)
 	if err != nil {
@@ -57,36 +60,37 @@ func buildQueryString(query db.Query, table string) (string, error) {
 	}
 
 	var builder QueryBuilder
-
-	// Outer select, to sort the final result by column/row split values
-	builder.WriteString("SELECT * FROM (")
-
 	builder.WriteString("SELECT ")
 	builder.WriteSplit(query.ColumnSplit)
 	builder.WriteString(" AS column_split, ")
 	builder.WriteSplit(query.RowSplit)
 	builder.WriteString(" AS row_split, ")
 
-	aggregation, ok := clickhouseAggregations.GetName(query.ValueAggregation.Aggregation)
-	if !ok {
-		return "", errors.New("invalid aggregation type for value aggregation in query")
+	if err := builder.WriteAggregation(query.ValueAggregation); err != nil {
+		return "", err
 	}
-	builder.WriteString(aggregation)
-
-	builder.WriteRune('(')
-	builder.WriteIdentifier(query.ValueAggregation.BaseColumnName)
-	builder.WriteString(") AS value_aggregation ")
+	builder.WriteString(" AS value_aggregation ")
 
 	builder.WriteString("FROM ")
 	builder.WriteIdentifier(table)
 
-	builder.WriteString(" GROUP BY column_split, row_split")
-	builder.WriteString(" ORDER BY value_aggregation")
-
+	// WHERE clause to get the top K rows by totals
+	builder.WriteString(" WHERE row_split IN (SELECT ")
+	builder.WriteIdentifier(query.RowSplit.BaseColumnName)
+	builder.WriteString(" FROM ")
+	builder.WriteIdentifier(table)
+	builder.WriteString(" GROUP BY ")
+	builder.WriteIdentifier(query.RowSplit.BaseColumnName)
+	builder.WriteString(" ORDER BY ")
+	if err := builder.WriteAggregation(query.ValueAggregation); err != nil {
+		return "", err
+	}
+	builder.WriteString(" DESC")
 	builder.WriteString(" LIMIT ")
-	builder.WriteInt(query.ColumnSplit.Limit * query.RowSplit.Limit)
+	builder.WriteInt(query.RowSplit.Limit)
+	builder.WriteRune(')')
 
-	builder.WriteRune(')') // Closing outer select
+	builder.WriteString(" GROUP BY column_split, row_split")
 
 	builder.WriteString(" ORDER BY column_split ")
 	sortOrder, ok := clickhouseSortOrders.GetName(query.ColumnSplit.SortOrder)
@@ -127,6 +131,7 @@ func parseQueryResult(results driver.Rows, query db.Query) (db.QueryResult, erro
 		}
 	}
 
+	queryResult.TruncateValuesForInsufficientColumns()
 	return queryResult, nil
 }
 

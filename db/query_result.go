@@ -18,18 +18,18 @@ type QueryResult struct {
 }
 
 type RowResult struct {
-	BaseColumnValue  DynamicValue `json:"baseColumnValue"`
-	AggregatedValues DynamicList  `json:"aggregatedValues"`
+	BaseFieldValue   DBValue     `json:"baseFieldValue"`
+	AggregatedValues DBValueList `json:"aggregatedValues"`
 }
 
 type ColumnResult struct {
-	BaseColumnValue DynamicValue `json:"baseColumnValue"`
+	BaseFieldValue DBValue `json:"baseFieldValue"`
 }
 
 type ResultHandle struct {
-	ColumnValue      DynamicValue
-	RowValue         DynamicValue
-	ValueAggregation DynamicValue
+	ColumnValue      DBValue
+	RowValue         DBValue
+	ValueAggregation DBValue
 }
 
 func NewQueryResult(query Query) QueryResult {
@@ -43,17 +43,17 @@ func NewQueryResult(query Query) QueryResult {
 }
 
 func (queryResult *QueryResult) NewResultHandle() (handle ResultHandle, err error) {
-	handle.ColumnValue, err = NewDynamicValue(queryResult.ColumnsMeta.BaseColumnDataType)
+	handle.ColumnValue, err = NewDBValue(queryResult.ColumnsMeta.BaseColumnDataType)
 	if err != nil {
 		return ResultHandle{}, wrap.Error(err, "failed to initialize column value")
 	}
 
-	handle.RowValue, err = NewDynamicValue(queryResult.RowsMeta.BaseColumnDataType)
+	handle.RowValue, err = NewDBValue(queryResult.RowsMeta.BaseColumnDataType)
 	if err != nil {
 		return ResultHandle{}, wrap.Error(err, "failed to initialize row value")
 	}
 
-	handle.ValueAggregation, err = NewDynamicValue(queryResult.ValueAggregationDataType)
+	handle.ValueAggregation, err = NewDBValue(queryResult.ValueAggregationDataType)
 	if err != nil {
 		return ResultHandle{}, wrap.Error(err, "failed to initialize value aggregation")
 	}
@@ -71,7 +71,11 @@ func (queryResult *QueryResult) ParseResult(handle ResultHandle) error {
 		return wrap.Error(err, "failed to parse row result")
 	}
 
-	if ok := rowResult.AggregatedValues.Append(handle.ValueAggregation.Value()); !ok {
+	ok := rowResult.AggregatedValues.Insert(
+		queryResult.currentColumnIndex(),
+		handle.ValueAggregation.Value(),
+	)
+	if !ok {
 		return errors.New("failed to append value aggregation from result handle")
 	}
 
@@ -83,12 +87,12 @@ func (queryResult *QueryResult) GetOrCreateRowResult(
 	rowValue any,
 ) (rowResult RowResult, index int, err error) {
 	for i, candidate := range queryResult.Rows {
-		if candidate.BaseColumnValue.Equals(rowValue) {
+		if candidate.BaseFieldValue.Equals(rowValue) {
 			return candidate, i, nil
 		}
 	}
 
-	baseColumnValue, err := NewDynamicValue(queryResult.RowsMeta.BaseColumnDataType)
+	baseColumnValue, err := NewDBValue(queryResult.RowsMeta.BaseColumnDataType)
 	if err != nil {
 		return RowResult{}, 0, wrap.Error(err, "failed to initialize base column value")
 	}
@@ -100,7 +104,7 @@ func (queryResult *QueryResult) GetOrCreateRowResult(
 		)
 	}
 
-	aggregatedValues, err := NewDynamicList(
+	aggregatedValues, err := NewDBValueList(
 		queryResult.ValueAggregationDataType,
 		queryResult.ColumnsMeta.Limit,
 	)
@@ -109,7 +113,7 @@ func (queryResult *QueryResult) GetOrCreateRowResult(
 	}
 
 	rowResult = RowResult{
-		BaseColumnValue:  baseColumnValue,
+		BaseFieldValue:   baseColumnValue,
 		AggregatedValues: aggregatedValues,
 	}
 	queryResult.Rows = append(queryResult.Rows, rowResult)
@@ -118,13 +122,13 @@ func (queryResult *QueryResult) GetOrCreateRowResult(
 
 func (queryResult *QueryResult) InitializeColumnResult(columnValue any) error {
 	if len(queryResult.Columns) > 0 {
-		lastIndex := len(queryResult.Columns) - 1
-		if queryResult.Columns[lastIndex].BaseColumnValue.Equals(columnValue) {
+		currentColumnValue := queryResult.Columns[queryResult.currentColumnIndex()].BaseFieldValue
+		if currentColumnValue.Equals(columnValue) {
 			return nil
 		}
 	}
 
-	baseColumnValue, err := NewDynamicValue(queryResult.ColumnsMeta.BaseColumnDataType)
+	baseColumnValue, err := NewDBValue(queryResult.ColumnsMeta.BaseColumnDataType)
 	if err != nil {
 		return wrap.Error(err, "failed to initialize base column value")
 	}
@@ -136,7 +140,20 @@ func (queryResult *QueryResult) InitializeColumnResult(columnValue any) error {
 		)
 	}
 
-	columnResult := ColumnResult{BaseColumnValue: baseColumnValue}
+	columnResult := ColumnResult{BaseFieldValue: baseColumnValue}
 	queryResult.Columns = append(queryResult.Columns, columnResult)
 	return nil
+}
+
+func (queryResult *QueryResult) TruncateValuesForInsufficientColumns() {
+	columnCount := len(queryResult.Columns)
+	if columnCount < queryResult.ColumnsMeta.Limit {
+		for _, row := range queryResult.Rows {
+			row.AggregatedValues.Truncate(columnCount)
+		}
+	}
+}
+
+func (queryResult *QueryResult) currentColumnIndex() int {
+	return len(queryResult.Columns) - 1
 }
