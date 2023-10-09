@@ -1,7 +1,7 @@
 package db
 
 type Query struct {
-	ValueAggregation ValueAggregation `json:"valueAggregations"`
+	ValueAggregation ValueAggregation `json:"valueAggregation"`
 	RowSplit         Split            `json:"rowSplit"`
 	ColumnSplit      Split            `json:"columnSplit"`
 }
