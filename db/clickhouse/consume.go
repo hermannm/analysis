@@ -106,6 +106,9 @@ func buildQueryString(query db.Query, table string) (string, error) {
 	}
 	builder.WriteString(sortOrder)
 
+	builder.WriteString(" LIMIT ")
+	builder.WriteInt(query.ColumnSplit.Limit * query.RowSplit.Limit)
+
 	return builder.String(), nil
 }
 
@@ -131,7 +134,7 @@ func parseQueryResult(results driver.Rows, query db.Query) (db.QueryResult, erro
 		}
 	}
 
-	queryResult.TruncateValuesForInsufficientColumns()
+	queryResult.TruncateColumns()
 	return queryResult, nil
 }
 

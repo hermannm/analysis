@@ -76,7 +76,7 @@ func (queryResult *QueryResult) ParseResult(handle ResultHandle) error {
 		handle.ValueAggregation.Value(),
 	)
 	if !ok {
-		return errors.New("failed to append value aggregation from result handle")
+		return errors.New("failed to insert value aggregation into query result")
 	}
 
 	queryResult.Rows[rowResultIndex] = rowResult
@@ -145,12 +145,18 @@ func (queryResult *QueryResult) InitializeColumnResult(columnValue any) error {
 	return nil
 }
 
-func (queryResult *QueryResult) TruncateValuesForInsufficientColumns() {
+func (queryResult *QueryResult) TruncateColumns() {
 	columnCount := len(queryResult.Columns)
-	if columnCount < queryResult.ColumnsMeta.Limit {
+	columnLimit := queryResult.ColumnsMeta.Limit
+
+	if columnCount == columnLimit {
+		return
+	} else if columnCount < columnLimit {
 		for _, row := range queryResult.Rows {
 			row.AggregatedValues.Truncate(columnCount)
 		}
+	} else {
+		queryResult.Columns = queryResult.Columns[:columnLimit]
 	}
 }
 

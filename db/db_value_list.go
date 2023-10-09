@@ -34,7 +34,7 @@ func NewDBValueList(dataType DataType, length int) (DBValueList, error) {
 
 func (list *dbValueList[T]) Insert(index int, item any) (ok bool) {
 	if index < 0 || index >= len(list.values) {
-		return false
+		return true
 	}
 
 	if item, ok := item.(T); ok {
