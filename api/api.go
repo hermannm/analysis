@@ -21,6 +21,7 @@ func NewAnalysisAPI(db db.AnalysisDB, router *http.ServeMux, config config.Confi
 	api.router.HandleFunc("/create-table-from-csv", api.CreateTableFromCSV)
 	api.router.HandleFunc("/update-table-with-csv", api.UpdateTableWithCSV)
 	api.router.HandleFunc("/query", api.Query)
+	api.router.HandleFunc("/get-table-schema", api.GetTableSchema)
 
 	return api
 }

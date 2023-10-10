@@ -13,6 +13,8 @@ type AnalysisDB interface {
 	) error
 
 	Query(ctx context.Context, query Query, table string) (QueryResult, error)
+
+	GetTableSchema(ctx context.Context, table string) (schema TableSchema, err error)
 }
 
 type DataSource interface {

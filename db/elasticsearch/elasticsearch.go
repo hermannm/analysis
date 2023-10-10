@@ -7,11 +7,11 @@ import (
 )
 
 type ElasticsearchDB struct {
-	client *elasticsearch.Client
+	client *elasticsearch.TypedClient
 }
 
 func NewElasticsearchDB(config config.Config) (ElasticsearchDB, error) {
-	client, err := elasticsearch.NewClient(elasticsearch.Config{
+	client, err := elasticsearch.NewTypedClient(elasticsearch.Config{
 		Addresses:         []string{config.Elasticsearch.Address},
 		EnableDebugLogger: config.Elasticsearch.Debug,
 	})
