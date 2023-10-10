@@ -18,6 +18,8 @@ type ClickHouseDB struct {
 }
 
 func NewClickHouseDB(config config.Config) (ClickHouseDB, error) {
+	ctx := context.Background()
+
 	// Options docs: https://clickhouse.com/docs/en/integrations/go#connection-settings
 	conn, err := clickhousego.Open(&clickhousego.Options{
 		Addr: []string{config.ClickHouse.Address},
@@ -36,22 +38,22 @@ func NewClickHouseDB(config config.Config) (ClickHouseDB, error) {
 		return ClickHouseDB{}, wrap.Error(err, "failed to connect to ClickHouse")
 	}
 
-	if err := conn.Ping(context.Background()); err != nil {
-		return ClickHouseDB{}, wrap.Error(err, "failed to ping ClickHouse connection")
-	}
-
 	clickhouse := ClickHouseDB{conn: conn}
+
+	if err := clickhouse.createSchemasTable(ctx); err != nil {
+		return ClickHouseDB{}, wrap.Error(err, "failed to create analysis schemas table")
+	}
 
 	tableToDrop := config.ClickHouse.DropTableOnStartup
 	if tableToDrop != "" && !config.IsProduction {
-		tableAlreadyDropped, err := clickhouse.dropTable(context.Background(), tableToDrop)
+		alreadyDropped, err := clickhouse.dropTableAndSchema(ctx, tableToDrop)
 		if err != nil {
 			log.Errorf(
 				err,
 				"failed to drop table '%s' (from DEBUG_DROP_TABLE_ON_STARTUP in env)",
 				tableToDrop,
 			)
-		} else if !tableAlreadyDropped {
+		} else if !alreadyDropped {
 			log.Infof("Dropped table '%s' (from DEBUG_DROP_TABLE_ON_STARTUP in env)", tableToDrop)
 		}
 	}
@@ -59,10 +61,44 @@ func NewClickHouseDB(config config.Config) (ClickHouseDB, error) {
 	return clickhouse, nil
 }
 
+const (
+	schemasTable             = "analysis_table_schemas"
+	schemasTableNameColumn   = "name"
+	schemasTableSchemaColumn = "schema"
+)
+
+func (clickhouse ClickHouseDB) createSchemasTable(ctx context.Context) error {
+	var builder QueryBuilder
+
+	// https://github.com/ClickHouse/ClickHouse/issues/39682#issuecomment-1198499933
+	if err := clickhouse.conn.Exec(ctx, "SET flatten_nested=0"); err != nil {
+		return wrap.Error(err, "failed to set 'flatten_nested' ClickHouse setting")
+	}
+
+	builder.WriteString("CREATE TABLE IF NOT EXISTS ")
+	builder.WriteIdentifier(schemasTable)
+	builder.WriteString(" (")
+	builder.WriteIdentifier(schemasTableNameColumn)
+	builder.WriteString(" String, ")
+	builder.WriteIdentifier(schemasTableSchemaColumn)
+	builder.WriteString(" Nested(name String, data_type UInt8, optional Boolean))")
+	builder.WriteString(" ENGINE = MergeTree()")
+	builder.WriteString(" PRIMARY KEY (name)")
+	if err := clickhouse.conn.Exec(ctx, builder.String()); err != nil {
+		return err
+	}
+
+	if err := clickhouse.conn.Exec(ctx, "SET flatten_nested=1"); err != nil {
+		return wrap.Error(err, "failed to reset 'flatten_nested' ClickHouse setting")
+	}
+
+	return nil
+}
+
 func (clickhouse ClickHouseDB) dropTable(
 	ctx context.Context,
 	table string,
-) (tableAlreadyDropped bool, err error) {
+) (alreadyDropped bool, err error) {
 	if err := ValidateIdentifier(table); err != nil {
 		return false, wrap.Error(err, "invalid table name")
 	}
@@ -84,4 +120,39 @@ func (clickhouse ClickHouseDB) dropTable(
 	}
 
 	return false, nil
+}
+
+func (clickhouse ClickHouseDB) deleteTableSchema(
+	ctx context.Context,
+	table string,
+) (alreadyDeleted bool, err error) {
+	var builder QueryBuilder
+	builder.WriteString("DELETE FROM ")
+	builder.WriteIdentifier(schemasTable)
+	builder.WriteString(" WHERE (")
+	builder.WriteIdentifier(schemasTableNameColumn)
+	builder.WriteString(" = ?)")
+
+	if err := clickhouse.conn.Exec(ctx, builder.String(), table); err != nil {
+		return false, wrap.Error(err, "delete table schema query failed")
+	}
+
+	return false, nil
+}
+
+func (clickhouse ClickHouseDB) dropTableAndSchema(
+	ctx context.Context,
+	table string,
+) (alreadyDropped bool, err error) {
+	alreadyDropped1, err := clickhouse.dropTable(ctx, table)
+	if err != nil {
+		return false, err
+	}
+
+	alreadyDropped2, err := clickhouse.deleteTableSchema(ctx, table)
+	if err != nil {
+		return false, err
+	}
+
+	return alreadyDropped1 && alreadyDropped2, nil
 }

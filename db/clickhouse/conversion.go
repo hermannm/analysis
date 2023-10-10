@@ -1,6 +1,8 @@
 package clickhouse
 
 import (
+	"strings"
+
 	"hermannm.dev/analysis/db"
 	"hermannm.dev/enumnames"
 )
@@ -27,3 +29,10 @@ var clickhouseAggregations = enumnames.NewMap(map[db.Aggregation]string{
 	db.AggregationMax:     "MAX",
 	db.AggregationCount:   "COUNT",
 })
+
+// From https://github.com/ClickHouse/clickhouse-go/blob/4f115fc2ea1ca12f43383643867eac632dc85760/bind.go#L270
+var stringQuoteReplacer = strings.NewReplacer(`\`, `\\`, `'`, `\'`)
+
+func replaceStringQuotes(s string) string {
+	return stringQuoteReplacer.Replace(s)
+}

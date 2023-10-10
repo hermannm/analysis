@@ -137,3 +137,36 @@ func parseQueryResult(results driver.Rows, query db.Query) (db.QueryResult, erro
 	queryResult.TruncateColumns()
 	return queryResult, nil
 }
+
+func (clickhouse ClickHouseDB) GetTableSchema(
+	ctx context.Context,
+	table string,
+) (schema db.TableSchema, err error) {
+	if err = ValidateIdentifier(table); err != nil {
+		return db.TableSchema{}, wrap.Error(err, "invalid table name")
+	}
+
+	var builder QueryBuilder
+	builder.WriteString("SELECT ")
+	builder.WriteIdentifier(schemasTableSchemaColumn)
+	builder.WriteString(" FROM ")
+	builder.WriteIdentifier(schemasTable)
+	builder.WriteString(" WHERE (")
+	builder.WriteIdentifier(schemasTableNameColumn)
+	builder.WriteString(" = ?)")
+
+	result := clickhouse.conn.QueryRow(ctx, builder.String(), table)
+	if err := result.Err(); err != nil {
+		return db.TableSchema{}, wrap.Error(err, "table schema query failed")
+	}
+
+	if err := result.Scan(&schema.Columns); err != nil {
+		return db.TableSchema{}, wrap.Error(err, "failed to parse table schema from database")
+	}
+
+	if errs := schema.Validate(); len(errs) != 0 {
+		return db.TableSchema{}, wrap.Errors("database returned invalid table schema", errs...)
+	}
+
+	return schema, nil
+}

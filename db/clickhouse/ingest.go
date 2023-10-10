@@ -52,7 +52,47 @@ func (clickhouse ClickHouseDB) CreateTable(
 		return wrap.Error(err, "create table query failed")
 	}
 
+	if err := clickhouse.storeTableSchema(ctx, table, schema); err != nil {
+		_, dropErr := clickhouse.dropTable(ctx, table)
+		if dropErr == nil {
+			return wrap.Error(err, "failed to store table schema")
+		} else {
+			return wrap.Errors(
+				"failed to store table schema AND failed to clean up invalid created table afterwards",
+				err,
+				dropErr,
+			)
+		}
+	}
+
 	return nil
+}
+
+func (clickhouse ClickHouseDB) storeTableSchema(
+	ctx context.Context,
+	table string,
+	schema db.TableSchema,
+) error {
+	if errs := schema.Validate(); len(errs) != 0 {
+		return wrap.Errors("invalid schema", errs...)
+	}
+
+	var builder QueryBuilder
+	builder.WriteString("INSERT INTO ")
+	builder.WriteIdentifier(schemasTable)
+	builder.WriteString(" VALUES (?, ?)")
+
+	formattedColumns := make([]string, len(schema.Columns))
+	for i, column := range schema.Columns {
+		formattedColumns[i] = fmt.Sprintf(
+			"('%s', %d, %t)",
+			replaceStringQuotes(column.Name),
+			column.DataType,
+			column.Optional,
+		)
+	}
+
+	return clickhouse.conn.AsyncInsert(ctx, builder.String(), true, table, formattedColumns)
 }
 
 // ClickHouse recommends keeping batch inserts between 10,000 and 100,000 rows:
