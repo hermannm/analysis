@@ -10,7 +10,8 @@ import (
 
 type Config struct {
 	BaseConfig
-	ClickHouse ClickHouse
+	ClickHouse    ClickHouse
+	Elasticsearch Elasticsearch
 }
 
 type BaseConfig struct {
@@ -32,10 +33,16 @@ type ClickHouse struct {
 	DropTableOnStartup string `env:"DEBUG_DROP_TABLE_ON_STARTUP" envDefault:""`
 }
 
+type Elasticsearch struct {
+	Address string `env:"ELASTICSEARCH_ADDRESS"`
+	Debug   bool   `env:"ELASTICSEARCH_DEBUG_ENABLED"`
+}
+
 type SupportedDB string
 
 const (
-	DBClickHouse SupportedDB = "clickhouse"
+	DBClickHouse    SupportedDB = "clickhouse"
+	DBElasticsearch SupportedDB = "elasticsearch"
 )
 
 func ReadFromEnv() (Config, error) {
@@ -56,8 +63,12 @@ func ReadFromEnv() (Config, error) {
 		if err := env.ParseWithOptions(&config.ClickHouse, parseOptions); err != nil {
 			return Config{}, err
 		}
+	case DBElasticsearch:
+		if err := env.ParseWithOptions(&config.Elasticsearch, parseOptions); err != nil {
+			return Config{}, err
+		}
 	default:
-		err := fmt.Errorf("must be one of: '%s'", DBClickHouse)
+		err := fmt.Errorf("must be one of: '%s'/'%s'", DBClickHouse, DBElasticsearch)
 		return Config{}, wrap.Errorf(err, "unsupported value '%s' for DATABASE in env", config.DB)
 	}
 
