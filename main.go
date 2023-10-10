@@ -25,7 +25,6 @@ func main() {
 	case config.DBClickHouse:
 		log.Info("Connecting to ClickHouse...")
 		db, err = clickhouse.NewClickHouseDB(conf)
-
 	case config.DBElasticsearch:
 		log.Info("Connecting to Elasticsearch...")
 		db, err = elasticsearch.NewElasticsearchDB(conf)
