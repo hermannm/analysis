@@ -5,6 +5,7 @@ go 1.21.1
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.13.4
 	github.com/caarlos0/env/v9 v9.0.0
+	github.com/elastic/go-elasticsearch/v8 v8.10.0
 	github.com/google/uuid v1.3.1
 	github.com/joho/godotenv v1.5.1
 	hermannm.dev/enumnames v0.1.0
@@ -14,6 +15,7 @@ require (
 require (
 	github.com/ClickHouse/ch-go v0.58.2 // indirect
 	github.com/andybalholm/brotli v1.0.5 // indirect
+	github.com/elastic/elastic-transport-go/v8 v8.0.0-20230329154755-1a3c63de0db6 // indirect
 	github.com/go-faster/city v1.0.1 // indirect
 	github.com/go-faster/errors v0.6.1 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
