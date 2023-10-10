@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 
@@ -28,6 +29,8 @@ func main() {
 	case config.DBElasticsearch:
 		log.Info("Connecting to Elasticsearch...")
 		db, err = elasticsearch.NewElasticsearchDB(conf)
+	default:
+		err = fmt.Errorf("unrecognized database '%s' from config", conf.DB)
 	}
 	if err != nil {
 		log.Error(err, "failed to initialize database")
