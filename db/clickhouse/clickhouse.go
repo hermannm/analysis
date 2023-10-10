@@ -40,8 +40,8 @@ func NewClickHouseDB(config config.Config) (ClickHouseDB, error) {
 
 	clickhouse := ClickHouseDB{conn: conn}
 
-	if err := clickhouse.createSchemasTable(ctx); err != nil {
-		return ClickHouseDB{}, wrap.Error(err, "failed to create analysis schemas table")
+	if err := clickhouse.createSchemaTable(ctx); err != nil {
+		return ClickHouseDB{}, wrap.Error(err, "failed to create schema table")
 	}
 
 	tableToDrop := config.ClickHouse.DropTableOnStartup
@@ -59,40 +59,6 @@ func NewClickHouseDB(config config.Config) (ClickHouseDB, error) {
 	}
 
 	return clickhouse, nil
-}
-
-const (
-	schemasTable             = "analysis_table_schemas"
-	schemasTableNameColumn   = "name"
-	schemasTableSchemaColumn = "schema"
-)
-
-func (clickhouse ClickHouseDB) createSchemasTable(ctx context.Context) error {
-	var builder QueryBuilder
-
-	// https://github.com/ClickHouse/ClickHouse/issues/39682#issuecomment-1198499933
-	if err := clickhouse.conn.Exec(ctx, "SET flatten_nested=0"); err != nil {
-		return wrap.Error(err, "failed to set 'flatten_nested' ClickHouse setting")
-	}
-
-	builder.WriteString("CREATE TABLE IF NOT EXISTS ")
-	builder.WriteIdentifier(schemasTable)
-	builder.WriteString(" (")
-	builder.WriteIdentifier(schemasTableNameColumn)
-	builder.WriteString(" String, ")
-	builder.WriteIdentifier(schemasTableSchemaColumn)
-	builder.WriteString(" Nested(name String, data_type UInt8, optional Boolean))")
-	builder.WriteString(" ENGINE = MergeTree()")
-	builder.WriteString(" PRIMARY KEY (name)")
-	if err := clickhouse.conn.Exec(ctx, builder.String()); err != nil {
-		return err
-	}
-
-	if err := clickhouse.conn.Exec(ctx, "SET flatten_nested=1"); err != nil {
-		return wrap.Error(err, "failed to reset 'flatten_nested' ClickHouse setting")
-	}
-
-	return nil
 }
 
 func (clickhouse ClickHouseDB) dropTable(
@@ -128,9 +94,9 @@ func (clickhouse ClickHouseDB) deleteTableSchema(
 ) (alreadyDeleted bool, err error) {
 	var builder QueryBuilder
 	builder.WriteString("DELETE FROM ")
-	builder.WriteIdentifier(schemasTable)
+	builder.WriteIdentifier(schemaTable)
 	builder.WriteString(" WHERE (")
-	builder.WriteIdentifier(schemasTableNameColumn)
+	builder.WriteIdentifier(schemaName)
 	builder.WriteString(" = ?)")
 
 	if err := clickhouse.conn.Exec(ctx, builder.String(), table); err != nil {
