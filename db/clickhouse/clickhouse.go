@@ -91,7 +91,7 @@ func (clickhouse ClickHouseDB) dropTable(
 func (clickhouse ClickHouseDB) deleteTableSchema(
 	ctx context.Context,
 	table string,
-) (alreadyDeleted bool, err error) {
+) error {
 	var builder QueryBuilder
 	builder.WriteString("DELETE FROM ")
 	builder.WriteIdentifier(schemaTable)
@@ -100,25 +100,24 @@ func (clickhouse ClickHouseDB) deleteTableSchema(
 	builder.WriteString(" = ?)")
 
 	if err := clickhouse.conn.Exec(ctx, builder.String(), table); err != nil {
-		return false, wrap.Error(err, "delete table schema query failed")
+		return wrap.Error(err, "delete table schema query failed")
 	}
 
-	return false, nil
+	return nil
 }
 
 func (clickhouse ClickHouseDB) dropTableAndSchema(
 	ctx context.Context,
 	table string,
 ) (alreadyDropped bool, err error) {
-	alreadyDropped1, err := clickhouse.dropTable(ctx, table)
+	alreadyDropped, err = clickhouse.dropTable(ctx, table)
 	if err != nil {
 		return false, err
 	}
 
-	alreadyDropped2, err := clickhouse.deleteTableSchema(ctx, table)
-	if err != nil {
+	if err := clickhouse.deleteTableSchema(ctx, table); err != nil {
 		return false, err
 	}
 
-	return alreadyDropped1 && alreadyDropped2, nil
+	return alreadyDropped, nil
 }
