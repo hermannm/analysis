@@ -10,36 +10,6 @@ import (
 	"hermannm.dev/wrap"
 )
 
-const maxRowsToCheckForCSVSchemaDeduction = 100
-
-// Expects:
-//   - multipart form field 'csvFile': CSV file to deduce types from
-//
-// Returns:
-//   - JSON-encoded db.TableSchema
-func (api AnalysisAPI) DeduceCSVTableSchema(res http.ResponseWriter, req *http.Request) {
-	csvFile, _, err := req.FormFile("csvFile")
-	if err != nil {
-		sendClientError(res, err, "failed to get file upload from request")
-		return
-	}
-	defer csvFile.Close()
-
-	csvReader, err := csv.NewReader(csvFile, false)
-	if err != nil {
-		sendServerError(res, err, "failed to read uploaded CSV file")
-		return
-	}
-
-	schema, err := csvReader.DeduceTableSchema(maxRowsToCheckForCSVSchemaDeduction)
-	if err != nil {
-		sendServerError(res, err, "failed to deduce table schema from uploaded CSV")
-		return
-	}
-
-	sendJSON(res, schema)
-}
-
 // Expects:
 //   - query parameter 'table': name of table to create
 //   - multipart form field 'tableSchema': JSON-encoded db.TableSchema
