@@ -15,9 +15,10 @@ type Config struct {
 }
 
 type BaseConfig struct {
-	IsProduction bool        `env:"PRODUCTION"`
-	DB           SupportedDB `env:"DATABASE"`
-	API          API
+	IsProduction       bool `env:"PRODUCTION"`
+	API                API
+	DB                 SupportedDB `env:"DATABASE"`
+	DropTableOnStartup string      `env:"DEBUG_DROP_TABLE_ON_STARTUP" envDefault:""`
 }
 
 type API struct {
@@ -25,12 +26,11 @@ type API struct {
 }
 
 type ClickHouse struct {
-	Address            string `env:"CLICKHOUSE_ADDRESS"`
-	DatabaseName       string `env:"CLICKHOUSE_DB_NAME"`
-	Username           string `env:"CLICKHOUSE_USERNAME"`
-	Password           string `env:"CLICKHOUSE_PASSWORD"`
-	Debug              bool   `env:"CLICKHOUSE_DEBUG_ENABLED"`
-	DropTableOnStartup string `env:"DEBUG_DROP_TABLE_ON_STARTUP" envDefault:""`
+	Address      string `env:"CLICKHOUSE_ADDRESS"`
+	DatabaseName string `env:"CLICKHOUSE_DB_NAME"`
+	Username     string `env:"CLICKHOUSE_USERNAME"`
+	Password     string `env:"CLICKHOUSE_PASSWORD"`
+	Debug        bool   `env:"CLICKHOUSE_DEBUG_ENABLED"`
 }
 
 type Elasticsearch struct {

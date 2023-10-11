@@ -44,7 +44,7 @@ func NewClickHouseDB(config config.Config) (ClickHouseDB, error) {
 		return ClickHouseDB{}, wrap.Error(err, "failed to create schema table")
 	}
 
-	tableToDrop := config.ClickHouse.DropTableOnStartup
+	tableToDrop := config.DropTableOnStartup
 	if tableToDrop != "" && !config.IsProduction {
 		alreadyDropped, err := clickhouse.dropTableAndSchema(ctx, tableToDrop)
 		if err != nil {
