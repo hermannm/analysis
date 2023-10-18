@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	log.Info("Loading environment variables...")
+	log.Info("loading environment variables...")
 	conf, err := config.ReadFromEnv()
 	if err != nil {
 		log.Error(err, "failed to read config from env")
@@ -24,10 +24,10 @@ func main() {
 	var db db.AnalysisDB
 	switch conf.DB {
 	case config.DBClickHouse:
-		log.Info("Connecting to ClickHouse...")
+		log.Info("connecting to ClickHouse...")
 		db, err = clickhouse.NewClickHouseDB(conf)
 	case config.DBElasticsearch:
-		log.Info("Connecting to Elasticsearch...")
+		log.Info("connecting to Elasticsearch...")
 		db, err = elasticsearch.NewElasticsearchDB(conf)
 	default:
 		err = fmt.Errorf("unrecognized database '%s' from config", conf.DB)
@@ -39,7 +39,7 @@ func main() {
 
 	analysisAPI := api.NewAnalysisAPI(db, http.DefaultServeMux, conf)
 
-	log.Infof("Listening on port %s...", conf.API.Port)
+	log.Infof("listening on port %s...", conf.API.Port)
 	if err := analysisAPI.ListenAndServe(); err != nil {
 		log.Error(err, "server stopped")
 		os.Exit(1)

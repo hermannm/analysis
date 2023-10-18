@@ -54,7 +54,7 @@ func NewClickHouseDB(config config.Config) (ClickHouseDB, error) {
 				tableToDrop,
 			)
 		} else if !alreadyDropped {
-			log.Infof("Dropped table '%s' (from DEBUG_DROP_TABLE_ON_STARTUP in env)", tableToDrop)
+			log.Infof("dropped table '%s' (from DEBUG_DROP_TABLE_ON_STARTUP in env)", tableToDrop)
 		}
 	}
 

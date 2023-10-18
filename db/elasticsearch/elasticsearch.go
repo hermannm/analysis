@@ -37,7 +37,7 @@ func NewElasticsearchDB(config config.Config) (ElasticsearchDB, error) {
 				indexToDrop,
 			)
 		} else if !alreadyDropped {
-			log.Infof("Dropped table '%s' (from DEBUG_DROP_TABLE_ON_STARTUP in env)", indexToDrop)
+			log.Infof("dropped table '%s' (from DEBUG_DROP_TABLE_ON_STARTUP in env)", indexToDrop)
 		}
 	}
 

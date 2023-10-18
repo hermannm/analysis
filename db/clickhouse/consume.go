@@ -21,7 +21,7 @@ func (clickhouse ClickHouseDB) Query(
 		return db.QueryResult{}, wrap.Error(err, "failed to parse query")
 	}
 
-	log.Infof("Generated query:\n%s", queryString)
+	log.Infof("generated query:\n%s", queryString)
 
 	results, err := clickhouse.conn.Query(ctx, queryString)
 	if err != nil {
