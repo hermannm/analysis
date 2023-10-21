@@ -14,6 +14,8 @@ import (
 )
 
 func main() {
+	log.Initialize()
+
 	log.Info("loading environment variables...")
 	conf, err := config.ReadFromEnv()
 	if err != nil {
