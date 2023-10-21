@@ -116,6 +116,8 @@ gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c/go.mod h1:JHkPIbrfpd72SG/EV
 gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
+hermannm.dev/devlog v0.1.0 h1:aqvbUNahabaXeOZ5c6iqmIVIFvM+lttpg4dA+5xtldw=
+hermannm.dev/devlog v0.1.0/go.mod h1:ZyMfU8dmF++jUegJ0VjWN0R9+1HKEtaISCnddvQ1Lq4=
 hermannm.dev/enumnames v0.1.0 h1:ee68fLY7VCsO3Oj4pt4rXL+yQDMGOoEigqN4Gti2baY=
 hermannm.dev/enumnames v0.1.0/go.mod h1:Zlyt21mTyqMUcec/vMhxxSNUKkL7TVwskge2zaxOaEE=
 hermannm.dev/wrap v0.2.0 h1:/E4mYplwPHkyy1rqWZk4PSyYrFPVtGbKJlmsPgWrAX0=
