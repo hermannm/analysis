@@ -65,24 +65,18 @@ func (clickhouse ClickHouseDB) GetTableSchema(
 		return db.TableSchema{}, wrap.Error(err, "table schema query failed")
 	}
 
-	names, dataTypes, optionals := makeSchemaColumnArrays(0)
-	if err := result.Scan(&names, &dataTypes, &optionals); err != nil {
+	var storedSchema db.StoredTableSchema
+	if err := result.Scan(
+		&storedSchema.ColumnNames,
+		&storedSchema.DataTypes,
+		&storedSchema.Optionals,
+	); err != nil {
 		return db.TableSchema{}, wrap.Error(err, "failed to parse table schema from database")
 	}
-	if len(names) != len(dataTypes) || len(names) != len(optionals) {
-		return db.TableSchema{}, wrap.Error(err, "database result arrays had inconsistent lengths")
-	}
 
-	schema = db.TableSchema{Columns: make([]db.Column, len(names))}
-	for i := range names {
-		schema.Columns[i] = db.Column{
-			Name:     names[i],
-			DataType: db.DataType(dataTypes[i]),
-			Optional: optionals[i],
-		}
-	}
-	if errs := schema.Validate(); len(errs) != 0 {
-		return db.TableSchema{}, wrap.Errors("database returned invalid table schema", errs...)
+	schema, err = storedSchema.ToSchema()
+	if err != nil {
+		return db.TableSchema{}, wrap.Error(err, "failed to parse stored table schema")
 	}
 
 	return schema, nil
@@ -102,12 +96,7 @@ func (clickhouse ClickHouseDB) storeTableSchema(
 	builder.WriteIdentifier(schemaTable)
 	builder.WriteString(" VALUES (?, ?, ?, ?)")
 
-	names, dataTypes, optionals := makeSchemaColumnArrays(len(schema.Columns))
-	for i, column := range schema.Columns {
-		names[i] = column.Name
-		dataTypes[i] = uint8(column.DataType)
-		optionals[i] = column.Optional
-	}
+	storedSchema := schema.ToStored()
 
 	shouldWaitForResult := true
 	return clickhouse.conn.AsyncInsert(
@@ -115,18 +104,8 @@ func (clickhouse ClickHouseDB) storeTableSchema(
 		builder.String(),
 		shouldWaitForResult,
 		table,
-		names,
-		dataTypes,
-		optionals,
+		storedSchema.ColumnNames,
+		storedSchema.DataTypes,
+		storedSchema.Optionals,
 	)
-}
-
-func makeSchemaColumnArrays(
-	length int,
-) (columnNames []string, dataTypes []uint8, optionals []bool) {
-	if length == 0 {
-		return nil, nil, nil
-	} else {
-		return make([]string, length), make([]uint8, length), make([]bool, length)
-	}
 }

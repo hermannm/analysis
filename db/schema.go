@@ -164,3 +164,48 @@ func (column Column) Validate() error {
 
 	return nil
 }
+
+type StoredTableSchema struct {
+	ColumnNames []string `json:"columnNames"`
+	DataTypes   []uint8  `json:"dataTypes"`
+	Optionals   []bool   `json:"optionals"`
+}
+
+func (storedSchema StoredTableSchema) ToSchema() (TableSchema, error) {
+	columnCount := len(storedSchema.ColumnNames)
+	if len(storedSchema.DataTypes) != columnCount || len(storedSchema.Optionals) != columnCount {
+		return TableSchema{}, errors.New("stored table schema had inconsistent column counts")
+	}
+
+	schema := TableSchema{Columns: make([]Column, columnCount)}
+	for i := 0; i < columnCount; i++ {
+		schema.Columns[i] = Column{
+			Name:     storedSchema.ColumnNames[i],
+			DataType: DataType(storedSchema.DataTypes[i]),
+			Optional: storedSchema.Optionals[i],
+		}
+	}
+	if errs := schema.Validate(); len(errs) != 0 {
+		return TableSchema{}, wrap.Errors("stored table schema was invalid", errs...)
+	}
+
+	return schema, nil
+}
+
+func (schema TableSchema) ToStored() StoredTableSchema {
+	columnCount := len(schema.Columns)
+
+	storedSchema := StoredTableSchema{
+		ColumnNames: make([]string, columnCount),
+		DataTypes:   make([]uint8, columnCount),
+		Optionals:   make([]bool, columnCount),
+	}
+
+	for i, column := range schema.Columns {
+		storedSchema.ColumnNames[i] = column.Name
+		storedSchema.DataTypes[i] = uint8(column.DataType)
+		storedSchema.Optionals[i] = column.Optional
+	}
+
+	return storedSchema
+}
