@@ -24,9 +24,9 @@ func (builder *QueryBuilder) WriteFloat(f float64) {
 
 // Must only be called after calling ValidateIdentifier/ValidateIdentifiers on the given identifier.
 func (builder *QueryBuilder) WriteIdentifier(identifier string) {
-	builder.WriteRune('`')
+	builder.WriteByte('`')
 	builder.WriteString(identifier)
-	builder.WriteRune('`')
+	builder.WriteByte('`')
 }
 
 func (builder *QueryBuilder) WriteAggregation(valueAggregation db.ValueAggregation) error {
@@ -36,9 +36,9 @@ func (builder *QueryBuilder) WriteAggregation(valueAggregation db.ValueAggregati
 	}
 	builder.WriteString(aggregation)
 
-	builder.WriteRune('(')
+	builder.WriteByte('(')
 	builder.WriteIdentifier(valueAggregation.BaseColumnName)
-	builder.WriteRune(')')
+	builder.WriteByte(')')
 	return nil
 }
 
@@ -54,7 +54,7 @@ DataTypeSwitch:
 			builder.WriteInt(split.IntegerInterval)
 			builder.WriteString(") * ")
 			builder.WriteInt(split.IntegerInterval)
-			builder.WriteRune(')')
+			builder.WriteByte(')')
 			return
 		}
 	case db.DataTypeFloat:
@@ -66,7 +66,7 @@ DataTypeSwitch:
 			builder.WriteFloat(split.FloatInterval)
 			builder.WriteString(") * ")
 			builder.WriteFloat(split.FloatInterval)
-			builder.WriteRune(')')
+			builder.WriteByte(')')
 			return
 		}
 	case db.DataTypeTimestamp:
@@ -97,7 +97,7 @@ DataTypeSwitch:
 				// https://clickhouse.com/docs/en/sql-reference/functions/date-time-functions#toweek
 				builder.WriteString(", 1)")
 			} else {
-				builder.WriteRune(')')
+				builder.WriteByte(')')
 			}
 
 			return

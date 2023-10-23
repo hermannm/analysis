@@ -28,7 +28,7 @@ func (clickhouse ClickHouseDB) CreateTable(
 			return wrap.Error(err, "invalid column name")
 		}
 		builder.WriteIdentifier(column.Name)
-		builder.WriteRune(' ')
+		builder.WriteByte(' ')
 
 		dataType, ok := clickhouseDataTypes.GetName(column.DataType)
 		if !ok {
@@ -44,7 +44,7 @@ func (clickhouse ClickHouseDB) CreateTable(
 			builder.WriteString(", ")
 		}
 	}
-	builder.WriteRune(')')
+	builder.WriteByte(')')
 	builder.WriteString(" ENGINE = MergeTree()")
 	builder.WriteString(" PRIMARY KEY (id)")
 

@@ -88,7 +88,7 @@ func buildQueryString(query db.Query, table string) (string, error) {
 	builder.WriteString(" DESC")
 	builder.WriteString(" LIMIT ")
 	builder.WriteInt(query.RowSplit.Limit)
-	builder.WriteRune(')')
+	builder.WriteByte(')')
 
 	builder.WriteString(" GROUP BY column_split, row_split")
 
