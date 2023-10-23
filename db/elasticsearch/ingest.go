@@ -2,8 +2,10 @@ package elasticsearch
 
 import (
 	"context"
-	"errors"
+	"encoding/json"
 
+	elastictypes "github.com/elastic/go-elasticsearch/v8/typedapi/types"
+	"github.com/google/uuid"
 	"hermannm.dev/analysis/db"
 	"hermannm.dev/wrap"
 )
@@ -31,5 +33,58 @@ func (elastic ElasticsearchDB) UpdateTableData(
 	schema db.TableSchema,
 	data db.DataSource,
 ) error {
-	return errors.New("not implemented")
+	bulk := elastic.client.Bulk()
+
+	for {
+		row, rowNumber, done, err := data.ReadRow()
+		if done {
+			break
+		}
+		if err != nil {
+			return wrap.Error(err, "failed to read row")
+		}
+
+		id, err := uuid.NewUUID()
+		if err != nil {
+			return wrap.Errorf(err, "failed to generate unique ID for row %d", rowNumber)
+		}
+		idString := id.String()
+
+		operation := elastictypes.CreateOperation{
+			Id_:    &idString,
+			Index_: &table,
+		}
+
+		rowMap, err := schema.ConvertRowToMap(row)
+		if err != nil {
+			return wrap.Errorf(
+				err,
+				"failed to convert row %d to data types expected by table schema",
+				rowNumber,
+			)
+		}
+
+		rowJSON, err := json.Marshal(rowMap)
+		if err != nil {
+			return wrap.Errorf(
+				err,
+				"failed to encode row %d to JSON for sending to Elasticsearch",
+				rowNumber,
+			)
+		}
+
+		if err := bulk.CreateOp(operation, rowJSON); err != nil {
+			return wrap.Errorf(
+				err,
+				"failed to add create operation for row %d to bulk insert",
+				rowNumber,
+			)
+		}
+	}
+
+	if _, err := bulk.Do(ctx); err != nil {
+		return wrap.Error(err, "bulk insert request failed")
+	}
+
+	return nil
 }

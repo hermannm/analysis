@@ -76,6 +76,35 @@ func deduceDataTypeFromField(field string) (deducedType DataType, isBlank bool) 
 	return DataTypeText, false
 }
 
+func (schema TableSchema) ConvertRowToMap(rawRow []string) (map[string]any, error) {
+	if len(rawRow) != len(schema.Columns) {
+		return nil, errors.New(
+			"given row has more fields than there are columns in the table schema",
+		)
+	}
+
+	rowMap := make(map[string]any, len(schema.Columns))
+
+	for i, field := range rawRow {
+		column := schema.Columns[i]
+
+		convertedField, err := convertField(field, column)
+		if err != nil {
+			return nil, wrap.Errorf(
+				err,
+				"failed to convert field '%s' to %s for column '%s'",
+				field,
+				column.DataType,
+				column.Name,
+			)
+		}
+
+		rowMap[column.Name] = convertedField
+	}
+
+	return rowMap, nil
+}
+
 func (schema TableSchema) ConvertAndAppendRow(convertedRow []any, rawRow []string) ([]any, error) {
 	if len(rawRow) != len(schema.Columns) {
 		return nil, errors.New(
