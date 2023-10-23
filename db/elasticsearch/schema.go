@@ -11,7 +11,7 @@ import (
 
 const elasticResourceAlreadyExistsException = "resource_already_exists_exception"
 
-func (elastic ElasticsearchDB) createSchemaIndex(ctx context.Context) error {
+func (elastic ElasticsearchDB) CreateStoredSchemasTable(ctx context.Context) error {
 	mappings := new(elastictypes.TypeMapping)
 	mappings.Properties = make(map[string]elastictypes.Property, 4)
 
@@ -29,6 +29,21 @@ func (elastic ElasticsearchDB) createSchemaIndex(ctx context.Context) error {
 		}
 
 		return wrap.Error(err, "Elasticsearch index creation request failed")
+	}
+
+	return nil
+}
+
+func (elastic ElasticsearchDB) StoreTableSchema(
+	ctx context.Context,
+	table string,
+	schema db.TableSchema,
+) error {
+	storedSchema := schema.ToStored()
+
+	_, err := elastic.client.Create(db.StoredSchemasTable, table).Document(storedSchema).Do(ctx)
+	if err != nil {
+		return wrap.Error(err, "Elasticsearch schema create request failed")
 	}
 
 	return nil
@@ -59,16 +74,9 @@ func (elastic ElasticsearchDB) GetTableSchema(
 	return schema, nil
 }
 
-func (elastic ElasticsearchDB) storeTableSchema(
-	ctx context.Context,
-	table string,
-	schema db.TableSchema,
-) error {
-	storedSchema := schema.ToStored()
-
-	_, err := elastic.client.Create(db.StoredSchemasTable, table).Document(storedSchema).Do(ctx)
-	if err != nil {
-		return wrap.Error(err, "Elasticsearch schema create request failed")
+func (elastic ElasticsearchDB) DeleteTableSchema(ctx context.Context, table string) error {
+	if _, err := elastic.client.Delete(db.StoredSchemasTable, table).Do(ctx); err != nil {
+		return wrap.Error(err, "Elasticsearch schema delete request failed")
 	}
 
 	return nil

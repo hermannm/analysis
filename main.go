@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -39,11 +40,42 @@ func main() {
 		os.Exit(1)
 	}
 
+	if conf.DropTableOnStartup != "" && !conf.IsProduction {
+		dropTableAndSchema(db, conf.DropTableOnStartup)
+	}
+
+	if err := db.CreateStoredSchemasTable(context.Background()); err != nil {
+		log.Error(err, "failed to create table for storing schemas")
+		os.Exit(1)
+	}
+
 	analysisAPI := api.NewAnalysisAPI(db, http.DefaultServeMux, conf)
 
 	log.Infof("listening on port %s...", conf.API.Port)
 	if err := analysisAPI.ListenAndServe(); err != nil {
 		log.Error(err, "server stopped")
 		os.Exit(1)
+	}
+}
+
+func dropTableAndSchema(db db.AnalysisDB, table string) {
+	ctx := context.Background()
+
+	alreadyDropped, err := db.DropTable(ctx, table)
+	if err != nil {
+		log.Errorf(
+			err,
+			"failed to drop table '%s' (from DEBUG_DROP_TABLE_ON_STARTUP in env)",
+			table,
+		)
+		return
+	}
+
+	if !alreadyDropped {
+		log.Infof("dropped table '%s' (from DEBUG_DROP_TABLE_ON_STARTUP in env)", table)
+
+		if err := db.DeleteTableSchema(ctx, table); err != nil {
+			log.Errorf(err, "failed to delete schema for dropped table '%s'", table)
+		}
 	}
 }

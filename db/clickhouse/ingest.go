@@ -52,19 +52,6 @@ func (clickhouse ClickHouseDB) CreateTable(
 		return wrap.Error(err, "create table query failed")
 	}
 
-	if err := clickhouse.storeTableSchema(ctx, table, schema); err != nil {
-		_, dropErr := clickhouse.dropTable(ctx, table)
-		if dropErr == nil {
-			return wrap.Error(err, "failed to store table schema")
-		} else {
-			return wrap.Errors(
-				"failed to store table schema AND failed to clean up invalid created table afterwards",
-				err,
-				dropErr,
-			)
-		}
-	}
-
 	return nil
 }
 

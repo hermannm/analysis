@@ -3,6 +3,8 @@ package db
 import "context"
 
 type AnalysisDB interface {
+	Query(ctx context.Context, query Query, table string) (QueryResult, error)
+
 	CreateTable(ctx context.Context, table string, schema TableSchema) error
 
 	UpdateTableData(
@@ -12,9 +14,15 @@ type AnalysisDB interface {
 		data DataSource,
 	) error
 
-	Query(ctx context.Context, query Query, table string) (QueryResult, error)
+	DropTable(ctx context.Context, table string) (alreadyDropped bool, err error)
+
+	CreateStoredSchemasTable(ctx context.Context) error
+
+	StoreTableSchema(ctx context.Context, table string, schema TableSchema) error
 
 	GetTableSchema(ctx context.Context, table string) (TableSchema, error)
+
+	DeleteTableSchema(ctx context.Context, table string) error
 }
 
 type DataSource interface {

@@ -7,7 +7,7 @@ import (
 	"hermannm.dev/wrap"
 )
 
-func (clickhouse ClickHouseDB) createSchemaTable(ctx context.Context) error {
+func (clickhouse ClickHouseDB) CreateStoredSchemasTable(ctx context.Context) error {
 	var builder QueryBuilder
 	builder.WriteString("CREATE TABLE IF NOT EXISTS ")
 	builder.WriteIdentifier(db.StoredSchemasTable)
@@ -29,6 +29,34 @@ func (clickhouse ClickHouseDB) createSchemaTable(ctx context.Context) error {
 	builder.WriteString(" PRIMARY KEY (name)")
 
 	return clickhouse.conn.Exec(ctx, builder.String())
+}
+
+func (clickhouse ClickHouseDB) StoreTableSchema(
+	ctx context.Context,
+	table string,
+	schema db.TableSchema,
+) error {
+	if errs := schema.Validate(); len(errs) != 0 {
+		return wrap.Errors("invalid schema", errs...)
+	}
+
+	var builder QueryBuilder
+	builder.WriteString("INSERT INTO ")
+	builder.WriteIdentifier(db.StoredSchemasTable)
+	builder.WriteString(" VALUES (?, ?, ?, ?)")
+
+	storedSchema := schema.ToStored()
+
+	shouldWaitForResult := true
+	return clickhouse.conn.AsyncInsert(
+		ctx,
+		builder.String(),
+		shouldWaitForResult,
+		table,
+		storedSchema.ColumnNames,
+		storedSchema.DataTypes,
+		storedSchema.Optionals,
+	)
 }
 
 func (clickhouse ClickHouseDB) GetTableSchema(
@@ -74,30 +102,20 @@ func (clickhouse ClickHouseDB) GetTableSchema(
 	return schema, nil
 }
 
-func (clickhouse ClickHouseDB) storeTableSchema(
+func (clickhouse ClickHouseDB) DeleteTableSchema(
 	ctx context.Context,
 	table string,
-	schema db.TableSchema,
 ) error {
-	if errs := schema.Validate(); len(errs) != 0 {
-		return wrap.Errors("invalid schema", errs...)
+	var builder QueryBuilder
+	builder.WriteString("DELETE FROM ")
+	builder.WriteIdentifier(db.StoredSchemasTable)
+	builder.WriteString(" WHERE (")
+	builder.WriteIdentifier(db.StoredSchemaName)
+	builder.WriteString(" = ?)")
+
+	if err := clickhouse.conn.Exec(ctx, builder.String(), table); err != nil {
+		return wrap.Error(err, "delete table schema query failed")
 	}
 
-	var builder QueryBuilder
-	builder.WriteString("INSERT INTO ")
-	builder.WriteIdentifier(db.StoredSchemasTable)
-	builder.WriteString(" VALUES (?, ?, ?, ?)")
-
-	storedSchema := schema.ToStored()
-
-	shouldWaitForResult := true
-	return clickhouse.conn.AsyncInsert(
-		ctx,
-		builder.String(),
-		shouldWaitForResult,
-		table,
-		storedSchema.ColumnNames,
-		storedSchema.DataTypes,
-		storedSchema.Optionals,
-	)
+	return nil
 }

@@ -39,6 +39,21 @@ func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Req
 		return
 	}
 
+	if err := api.db.StoreTableSchema(req.Context(), table, schema); err != nil {
+		_, dropErr := api.db.DropTable(req.Context(), table)
+		if dropErr == nil {
+			sendServerError(res, err, "failed to store table schema")
+			return
+		} else {
+			sendServerError(res, wrap.Errors(
+				"failed to store table schema AND failed to clean up invalid created table afterwards",
+				err,
+				dropErr,
+			), "")
+			return
+		}
+	}
+
 	csvReader, err := csv.NewReader(csvFile, true)
 	if err != nil {
 		sendServerError(res, err, "failed to read uploaded CSV file")

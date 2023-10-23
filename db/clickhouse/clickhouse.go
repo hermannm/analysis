@@ -8,8 +8,6 @@ import (
 	clickhousedriver "github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	clickhouseproto "github.com/ClickHouse/clickhouse-go/v2/lib/proto"
 	"hermannm.dev/analysis/config"
-	"hermannm.dev/analysis/db"
-	"hermannm.dev/analysis/log"
 	"hermannm.dev/wrap"
 )
 
@@ -19,8 +17,6 @@ type ClickHouseDB struct {
 }
 
 func NewClickHouseDB(config config.Config) (ClickHouseDB, error) {
-	ctx := context.Background()
-
 	// Options docs: https://clickhouse.com/docs/en/integrations/go#connection-settings
 	conn, err := clickhousego.Open(&clickhousego.Options{
 		Addr: []string{config.ClickHouse.Address},
@@ -39,30 +35,10 @@ func NewClickHouseDB(config config.Config) (ClickHouseDB, error) {
 		return ClickHouseDB{}, wrap.Error(err, "failed to connect to ClickHouse")
 	}
 
-	clickhouse := ClickHouseDB{conn: conn}
-
-	if err := clickhouse.createSchemaTable(ctx); err != nil {
-		return ClickHouseDB{}, wrap.Error(err, "failed to create schema table")
-	}
-
-	tableToDrop := config.DropTableOnStartup
-	if tableToDrop != "" && !config.IsProduction {
-		alreadyDropped, err := clickhouse.dropTableAndSchema(ctx, tableToDrop)
-		if err != nil {
-			log.Errorf(
-				err,
-				"failed to drop table '%s' (from DEBUG_DROP_TABLE_ON_STARTUP in env)",
-				tableToDrop,
-			)
-		} else if !alreadyDropped {
-			log.Infof("dropped table '%s' (from DEBUG_DROP_TABLE_ON_STARTUP in env)", tableToDrop)
-		}
-	}
-
-	return clickhouse, nil
+	return ClickHouseDB{conn: conn}, nil
 }
 
-func (clickhouse ClickHouseDB) dropTable(
+func (clickhouse ClickHouseDB) DropTable(
 	ctx context.Context,
 	table string,
 ) (alreadyDropped bool, err error) {
@@ -87,38 +63,4 @@ func (clickhouse ClickHouseDB) dropTable(
 	}
 
 	return false, nil
-}
-
-func (clickhouse ClickHouseDB) deleteTableSchema(
-	ctx context.Context,
-	table string,
-) error {
-	var builder QueryBuilder
-	builder.WriteString("DELETE FROM ")
-	builder.WriteIdentifier(db.StoredSchemasTable)
-	builder.WriteString(" WHERE (")
-	builder.WriteIdentifier(db.StoredSchemaName)
-	builder.WriteString(" = ?)")
-
-	if err := clickhouse.conn.Exec(ctx, builder.String(), table); err != nil {
-		return wrap.Error(err, "delete table schema query failed")
-	}
-
-	return nil
-}
-
-func (clickhouse ClickHouseDB) dropTableAndSchema(
-	ctx context.Context,
-	table string,
-) (alreadyDropped bool, err error) {
-	alreadyDropped, err = clickhouse.dropTable(ctx, table)
-	if err != nil {
-		return false, err
-	}
-
-	if err := clickhouse.deleteTableSchema(ctx, table); err != nil {
-		return false, err
-	}
-
-	return alreadyDropped, nil
 }
