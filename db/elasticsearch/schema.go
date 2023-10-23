@@ -2,7 +2,7 @@ package elasticsearch
 
 import (
 	"context"
-	"errors"
+	"encoding/json"
 
 	elastictypes "github.com/elastic/go-elasticsearch/v8/typedapi/types"
 	"hermannm.dev/analysis/db"
@@ -46,6 +46,39 @@ func (elastic ElasticsearchDB) createSchemaIndex(ctx context.Context) error {
 func (elastic ElasticsearchDB) GetTableSchema(
 	ctx context.Context,
 	table string,
-) (schema db.TableSchema, err error) {
-	return db.TableSchema{}, errors.New("not implemented")
+) (db.TableSchema, error) {
+	schemaIndex, err := elastic.client.Get(schemaIndex, table).Do(ctx)
+	if err != nil {
+		return db.TableSchema{}, wrap.Error(err, "Elasticsearch schema index get request failed")
+	}
+
+	var storedSchema db.StoredTableSchema
+	if err := json.Unmarshal(schemaIndex.Source_, &storedSchema); err != nil {
+		return db.TableSchema{}, wrap.Error(
+			err,
+			"failed to parse Elasticsearch response as table schema",
+		)
+	}
+
+	schema, err := storedSchema.ToSchema()
+	if err != nil {
+		return db.TableSchema{}, wrap.Error(err, "failed to parse stored table schema")
+	}
+
+	return schema, nil
+}
+
+func (elastic ElasticsearchDB) storeTableSchema(
+	ctx context.Context,
+	table string,
+	schema db.TableSchema,
+) error {
+	storedSchema := schema.ToStored()
+
+	_, err := elastic.client.Create(schemaIndex, table).Document(storedSchema).Do(ctx)
+	if err != nil {
+		return wrap.Error(err, "Elasticsearch schema create request failed")
+	}
+
+	return nil
 }
