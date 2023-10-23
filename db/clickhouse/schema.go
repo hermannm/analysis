@@ -42,8 +42,8 @@ func (clickhouse ClickHouseDB) createSchemaTable(ctx context.Context) error {
 func (clickhouse ClickHouseDB) GetTableSchema(
 	ctx context.Context,
 	table string,
-) (schema db.TableSchema, err error) {
-	if err = ValidateIdentifier(table); err != nil {
+) (db.TableSchema, error) {
+	if err := ValidateIdentifier(table); err != nil {
 		return db.TableSchema{}, wrap.Error(err, "invalid table name")
 	}
 
@@ -74,7 +74,7 @@ func (clickhouse ClickHouseDB) GetTableSchema(
 		return db.TableSchema{}, wrap.Error(err, "failed to parse table schema from database")
 	}
 
-	schema, err = storedSchema.ToSchema()
+	schema, err := storedSchema.ToSchema()
 	if err != nil {
 		return db.TableSchema{}, wrap.Error(err, "failed to parse stored table schema")
 	}
