@@ -27,6 +27,10 @@ func NewElasticsearchDB(config config.Config) (ElasticsearchDB, error) {
 
 	elastic := ElasticsearchDB{client: client}
 
+	if err := elastic.createSchemaIndex(ctx); err != nil {
+		return ElasticsearchDB{}, wrap.Error(err, "failed to create schema index")
+	}
+
 	indexToDrop := config.DropTableOnStartup
 	if indexToDrop != "" && !config.IsProduction {
 		alreadyDropped, err := elastic.deleteIndex(ctx, indexToDrop)
