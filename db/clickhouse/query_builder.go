@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"hermannm.dev/analysis/db"
-	"hermannm.dev/analysis/log"
 )
 
 type QueryBuilder struct {
@@ -42,8 +41,7 @@ func (builder *QueryBuilder) WriteAggregation(valueAggregation db.ValueAggregati
 	return nil
 }
 
-func (builder *QueryBuilder) WriteSplit(split db.Split) {
-DataTypeSwitch:
+func (builder *QueryBuilder) WriteSplit(split db.Split) error {
 	switch split.BaseColumnDataType {
 	case db.DataTypeInt:
 		if split.IntegerInterval != 0 {
@@ -55,7 +53,7 @@ DataTypeSwitch:
 			builder.WriteString(") * ")
 			builder.WriteInt(split.IntegerInterval)
 			builder.WriteByte(')')
-			return
+			return nil
 		}
 	case db.DataTypeFloat:
 		if split.FloatInterval != 0 {
@@ -67,7 +65,7 @@ DataTypeSwitch:
 			builder.WriteString(") * ")
 			builder.WriteFloat(split.FloatInterval)
 			builder.WriteByte(')')
-			return
+			return nil
 		}
 	case db.DataTypeTimestamp:
 		if split.DateInterval != nil {
@@ -86,8 +84,7 @@ DataTypeSwitch:
 			case db.DateIntervalDay:
 				builder.WriteString("toStartOfDay(")
 			default:
-				log.Warnf("unhandled date interval type '%d'", dateInterval)
-				break DataTypeSwitch
+				return fmt.Errorf("unrecognized date interval type '%v'", dateInterval)
 			}
 
 			builder.WriteIdentifier(split.BaseColumnName)
@@ -99,13 +96,13 @@ DataTypeSwitch:
 			} else {
 				builder.WriteByte(')')
 			}
-
-			return
+			return nil
 		}
 	}
 
 	// If we get here, no interval was specified
 	builder.WriteIdentifier(split.BaseColumnName)
+	return nil
 }
 
 func ValidateIdentifier(identifier string) error {

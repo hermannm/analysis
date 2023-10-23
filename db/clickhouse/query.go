@@ -61,9 +61,13 @@ func buildQueryString(query db.Query, table string) (string, error) {
 
 	var builder QueryBuilder
 	builder.WriteString("SELECT ")
-	builder.WriteSplit(query.ColumnSplit)
+	if err := builder.WriteSplit(query.ColumnSplit); err != nil {
+		return "", wrap.Error(err, "failed to parse query column split")
+	}
 	builder.WriteString(" AS column_split, ")
-	builder.WriteSplit(query.RowSplit)
+	if err := builder.WriteSplit(query.RowSplit); err != nil {
+		return "", wrap.Error(err, "failed to parse query row split")
+	}
 	builder.WriteString(" AS row_split, ")
 
 	if err := builder.WriteAggregation(query.ValueAggregation); err != nil {
