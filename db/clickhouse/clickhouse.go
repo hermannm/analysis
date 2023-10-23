@@ -8,6 +8,7 @@ import (
 	clickhousedriver "github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	clickhouseproto "github.com/ClickHouse/clickhouse-go/v2/lib/proto"
 	"hermannm.dev/analysis/config"
+	"hermannm.dev/analysis/db"
 	"hermannm.dev/analysis/log"
 	"hermannm.dev/wrap"
 )
@@ -94,9 +95,9 @@ func (clickhouse ClickHouseDB) deleteTableSchema(
 ) error {
 	var builder QueryBuilder
 	builder.WriteString("DELETE FROM ")
-	builder.WriteIdentifier(schemaTable)
+	builder.WriteIdentifier(db.StoredSchemasTable)
 	builder.WriteString(" WHERE (")
-	builder.WriteIdentifier(schemaName)
+	builder.WriteIdentifier(db.StoredSchemaName)
 	builder.WriteString(" = ?)")
 
 	if err := clickhouse.conn.Exec(ctx, builder.String(), table); err != nil {

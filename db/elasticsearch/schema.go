@@ -9,29 +9,20 @@ import (
 	"hermannm.dev/wrap"
 )
 
-const (
-	schemaIndex           = "analysis_schemas"
-	schemaName            = "name"
-	schemaColumnNames     = "column_names"
-	schemaColumnDataTypes = "column_data_types"
-	schemaColumnOptionals = "column_optionals"
-)
-
 const elasticResourceAlreadyExistsException = "resource_already_exists_exception"
 
 func (elastic ElasticsearchDB) createSchemaIndex(ctx context.Context) error {
 	mappings := new(elastictypes.TypeMapping)
 	mappings.Properties = make(map[string]elastictypes.Property, 4)
 
-	mappings.Properties[schemaName] = elastictypes.NewTextProperty()
-
 	// Array fields in Elasticsearch don't have their own mapping: any field can contain multiple
 	// values of that type (see https://www.elastic.co/guide/en/elasticsearch/reference/8.10/array.html).
-	mappings.Properties[schemaColumnNames] = elastictypes.NewTextProperty()
-	mappings.Properties[schemaColumnDataTypes] = elastictypes.NewIntegerNumberProperty()
-	mappings.Properties[schemaColumnOptionals] = elastictypes.NewBooleanProperty()
+	mappings.Properties[db.StoredSchemaColumnNames] = elastictypes.NewTextProperty()
+	mappings.Properties[db.StoredSchemaColumnDataTypes] = elastictypes.NewIntegerNumberProperty()
+	mappings.Properties[db.StoredSchemaColumnOptionals] = elastictypes.NewBooleanProperty()
 
-	if _, err := elastic.client.Indices.Create(schemaIndex).Mappings(mappings).Do(ctx); err != nil {
+	_, err := elastic.client.Indices.Create(db.StoredSchemasTable).Mappings(mappings).Do(ctx)
+	if err != nil {
 		elasticErr, isElasticErr := err.(*elastictypes.ElasticsearchError)
 		if isElasticErr && elasticErr.ErrorCause.Type == elasticResourceAlreadyExistsException {
 			return nil
@@ -47,7 +38,7 @@ func (elastic ElasticsearchDB) GetTableSchema(
 	ctx context.Context,
 	table string,
 ) (db.TableSchema, error) {
-	schemaIndex, err := elastic.client.Get(schemaIndex, table).Do(ctx)
+	schemaIndex, err := elastic.client.Get(db.StoredSchemasTable, table).Do(ctx)
 	if err != nil {
 		return db.TableSchema{}, wrap.Error(err, "Elasticsearch schema index get request failed")
 	}
@@ -75,7 +66,7 @@ func (elastic ElasticsearchDB) storeTableSchema(
 ) error {
 	storedSchema := schema.ToStored()
 
-	_, err := elastic.client.Create(schemaIndex, table).Document(storedSchema).Do(ctx)
+	_, err := elastic.client.Create(db.StoredSchemasTable, table).Document(storedSchema).Do(ctx)
 	if err != nil {
 		return wrap.Error(err, "Elasticsearch schema create request failed")
 	}

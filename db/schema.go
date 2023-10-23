@@ -165,10 +165,18 @@ func (column Column) Validate() error {
 	return nil
 }
 
+const (
+	StoredSchemasTable          = "analysis_schemas"
+	StoredSchemaName            = "table_name"
+	StoredSchemaColumnNames     = "column_names"
+	StoredSchemaColumnDataTypes = "column_data_types"
+	StoredSchemaColumnOptionals = "column_optionals"
+)
+
 type StoredTableSchema struct {
-	ColumnNames []string `json:"columnNames"`
-	DataTypes   []uint8  `json:"dataTypes"`
-	Optionals   []bool   `json:"optionals"`
+	ColumnNames []string `json:"column_names"`
+	DataTypes   []uint8  `json:"column_data_types"`
+	Optionals   []bool   `json:"column_optionals"`
 }
 
 func (storedSchema StoredTableSchema) ToSchema() (TableSchema, error) {

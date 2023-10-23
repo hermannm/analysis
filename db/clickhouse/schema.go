@@ -7,30 +7,22 @@ import (
 	"hermannm.dev/wrap"
 )
 
-const (
-	schemaTable           = "analysis_schemas"
-	schemaName            = "name"
-	schemaColumnNames     = "column_names"
-	schemaColumnDataTypes = "column_data_types"
-	schemaColumnOptionals = "column_optionals"
-)
-
 func (clickhouse ClickHouseDB) createSchemaTable(ctx context.Context) error {
 	var builder QueryBuilder
 	builder.WriteString("CREATE TABLE IF NOT EXISTS ")
-	builder.WriteIdentifier(schemaTable)
+	builder.WriteIdentifier(db.StoredSchemasTable)
 	builder.WriteString(" (")
 
-	builder.WriteIdentifier(schemaName)
+	builder.WriteIdentifier(db.StoredSchemaColumnNames)
 	builder.WriteString(" String, ")
 
-	builder.WriteIdentifier(schemaColumnNames)
+	builder.WriteIdentifier(db.StoredSchemaColumnNames)
 	builder.WriteString(" Array(String), ")
 
-	builder.WriteIdentifier(schemaColumnDataTypes)
+	builder.WriteIdentifier(db.StoredSchemaColumnDataTypes)
 	builder.WriteString(" Array(UInt8), ")
 
-	builder.WriteIdentifier(schemaColumnOptionals)
+	builder.WriteIdentifier(db.StoredSchemaColumnOptionals)
 	builder.WriteString(" Array(Bool))")
 
 	builder.WriteString(" ENGINE = MergeTree()")
@@ -49,15 +41,15 @@ func (clickhouse ClickHouseDB) GetTableSchema(
 
 	var builder QueryBuilder
 	builder.WriteString("SELECT ")
-	builder.WriteIdentifier(schemaColumnNames)
+	builder.WriteIdentifier(db.StoredSchemaColumnNames)
 	builder.WriteString(", ")
-	builder.WriteIdentifier(schemaColumnDataTypes)
+	builder.WriteIdentifier(db.StoredSchemaColumnDataTypes)
 	builder.WriteString(", ")
-	builder.WriteIdentifier(schemaColumnOptionals)
+	builder.WriteIdentifier(db.StoredSchemaColumnOptionals)
 	builder.WriteString(" FROM ")
-	builder.WriteIdentifier(schemaTable)
+	builder.WriteIdentifier(db.StoredSchemasTable)
 	builder.WriteString(" WHERE (")
-	builder.WriteIdentifier(schemaName)
+	builder.WriteIdentifier(db.StoredSchemaName)
 	builder.WriteString(" = ?)")
 
 	result := clickhouse.conn.QueryRow(ctx, builder.String(), table)
@@ -93,7 +85,7 @@ func (clickhouse ClickHouseDB) storeTableSchema(
 
 	var builder QueryBuilder
 	builder.WriteString("INSERT INTO ")
-	builder.WriteIdentifier(schemaTable)
+	builder.WriteIdentifier(db.StoredSchemasTable)
 	builder.WriteString(" VALUES (?, ?, ?, ?)")
 
 	storedSchema := schema.ToStored()
