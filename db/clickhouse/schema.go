@@ -8,29 +8,29 @@ import (
 )
 
 func (clickhouse ClickHouseDB) CreateStoredSchemasTable(ctx context.Context) error {
-	var builder QueryBuilder
-	builder.WriteString("CREATE TABLE IF NOT EXISTS ")
-	builder.WriteIdentifier(db.StoredSchemasTable)
-	builder.WriteString(" (")
+	var query QueryBuilder
+	query.WriteString("CREATE TABLE IF NOT EXISTS ")
+	query.WriteIdentifier(db.StoredSchemasTable)
+	query.WriteString(" (")
 
-	builder.WriteIdentifier(db.StoredSchemaName)
-	builder.WriteString(" String, ")
+	query.WriteIdentifier(db.StoredSchemaName)
+	query.WriteString(" String, ")
 
-	builder.WriteIdentifier(db.StoredSchemaColumnNames)
-	builder.WriteString(" Array(String), ")
+	query.WriteIdentifier(db.StoredSchemaColumnNames)
+	query.WriteString(" Array(String), ")
 
-	builder.WriteIdentifier(db.StoredSchemaColumnDataTypes)
-	builder.WriteString(" Array(Int8), ")
+	query.WriteIdentifier(db.StoredSchemaColumnDataTypes)
+	query.WriteString(" Array(Int8), ")
 
-	builder.WriteIdentifier(db.StoredSchemaColumnOptionals)
-	builder.WriteString(" Array(Bool))")
+	query.WriteIdentifier(db.StoredSchemaColumnOptionals)
+	query.WriteString(" Array(Bool))")
 
-	builder.WriteString(" ENGINE = MergeTree()")
-	builder.WriteString(" PRIMARY KEY (")
-	builder.WriteIdentifier(db.StoredSchemaName)
-	builder.WriteByte(')')
+	query.WriteString(" ENGINE = MergeTree()")
+	query.WriteString(" PRIMARY KEY (")
+	query.WriteIdentifier(db.StoredSchemaName)
+	query.WriteByte(')')
 
-	return clickhouse.conn.Exec(ctx, builder.String())
+	return clickhouse.conn.Exec(ctx, query.String())
 }
 
 func (clickhouse ClickHouseDB) StoreTableSchema(
@@ -42,17 +42,17 @@ func (clickhouse ClickHouseDB) StoreTableSchema(
 		return wrap.Errors("invalid schema", errs...)
 	}
 
-	var builder QueryBuilder
-	builder.WriteString("INSERT INTO ")
-	builder.WriteIdentifier(db.StoredSchemasTable)
-	builder.WriteString(" VALUES (?, ?, ?, ?)")
+	var query QueryBuilder
+	query.WriteString("INSERT INTO ")
+	query.WriteIdentifier(db.StoredSchemasTable)
+	query.WriteString(" VALUES (?, ?, ?, ?)")
 
 	storedSchema := schema.ToStored()
 
 	shouldWaitForResult := true
 	return clickhouse.conn.AsyncInsert(
 		ctx,
-		builder.String(),
+		query.String(),
 		shouldWaitForResult,
 		table,
 		storedSchema.ColumnNames,
@@ -69,20 +69,20 @@ func (clickhouse ClickHouseDB) GetTableSchema(
 		return db.TableSchema{}, wrap.Error(err, "invalid table name")
 	}
 
-	var builder QueryBuilder
-	builder.WriteString("SELECT ")
-	builder.WriteIdentifier(db.StoredSchemaColumnNames)
-	builder.WriteString(", ")
-	builder.WriteIdentifier(db.StoredSchemaColumnDataTypes)
-	builder.WriteString(", ")
-	builder.WriteIdentifier(db.StoredSchemaColumnOptionals)
-	builder.WriteString(" FROM ")
-	builder.WriteIdentifier(db.StoredSchemasTable)
-	builder.WriteString(" WHERE (")
-	builder.WriteIdentifier(db.StoredSchemaName)
-	builder.WriteString(" = ?)")
+	var query QueryBuilder
+	query.WriteString("SELECT ")
+	query.WriteIdentifier(db.StoredSchemaColumnNames)
+	query.WriteString(", ")
+	query.WriteIdentifier(db.StoredSchemaColumnDataTypes)
+	query.WriteString(", ")
+	query.WriteIdentifier(db.StoredSchemaColumnOptionals)
+	query.WriteString(" FROM ")
+	query.WriteIdentifier(db.StoredSchemasTable)
+	query.WriteString(" WHERE (")
+	query.WriteIdentifier(db.StoredSchemaName)
+	query.WriteString(" = ?)")
 
-	result := clickhouse.conn.QueryRow(ctx, builder.String(), table)
+	result := clickhouse.conn.QueryRow(ctx, query.String(), table)
 	if err := result.Err(); err != nil {
 		return db.TableSchema{}, wrap.Error(err, "table schema query failed")
 	}
@@ -108,14 +108,14 @@ func (clickhouse ClickHouseDB) DeleteTableSchema(
 	ctx context.Context,
 	table string,
 ) error {
-	var builder QueryBuilder
-	builder.WriteString("DELETE FROM ")
-	builder.WriteIdentifier(db.StoredSchemasTable)
-	builder.WriteString(" WHERE (")
-	builder.WriteIdentifier(db.StoredSchemaName)
-	builder.WriteString(" = ?)")
+	var query QueryBuilder
+	query.WriteString("DELETE FROM ")
+	query.WriteIdentifier(db.StoredSchemasTable)
+	query.WriteString(" WHERE (")
+	query.WriteIdentifier(db.StoredSchemaName)
+	query.WriteString(" = ?)")
 
-	if err := clickhouse.conn.Exec(ctx, builder.String(), table); err != nil {
+	if err := clickhouse.conn.Exec(ctx, query.String(), table); err != nil {
 		return wrap.Error(err, "delete table schema query failed")
 	}
 

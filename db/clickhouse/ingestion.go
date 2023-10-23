@@ -18,37 +18,37 @@ func (clickhouse ClickHouseDB) CreateTable(
 		return wrap.Error(err, "invalid table name")
 	}
 
-	var builder QueryBuilder
-	builder.WriteString("CREATE TABLE ")
-	builder.WriteIdentifier(table)
-	builder.WriteString(" (`id` UUID, ")
+	var query QueryBuilder
+	query.WriteString("CREATE TABLE ")
+	query.WriteIdentifier(table)
+	query.WriteString(" (`id` UUID, ")
 
 	for i, column := range schema.Columns {
 		if err := ValidateIdentifier(column.Name); err != nil {
 			return wrap.Error(err, "invalid column name")
 		}
-		builder.WriteIdentifier(column.Name)
-		builder.WriteByte(' ')
+		query.WriteIdentifier(column.Name)
+		query.WriteByte(' ')
 
 		dataType, ok := clickhouseDataTypes.GetName(column.DataType)
 		if !ok {
 			return fmt.Errorf("invalid data type '%v' in column '%s'", column.DataType, column.Name)
 		}
-		builder.WriteString(dataType)
+		query.WriteString(dataType)
 
 		if column.Optional {
-			builder.WriteString(" NULL")
+			query.WriteString(" NULL")
 		}
 
 		if i != len(schema.Columns)-1 {
-			builder.WriteString(", ")
+			query.WriteString(", ")
 		}
 	}
-	builder.WriteByte(')')
-	builder.WriteString(" ENGINE = MergeTree()")
-	builder.WriteString(" PRIMARY KEY (id)")
+	query.WriteByte(')')
+	query.WriteString(" ENGINE = MergeTree()")
+	query.WriteString(" PRIMARY KEY (id)")
 
-	if err := clickhouse.conn.Exec(ctx, builder.String()); err != nil {
+	if err := clickhouse.conn.Exec(ctx, query.String()); err != nil {
 		return wrap.Error(err, "create table query failed")
 	}
 
@@ -69,10 +69,10 @@ func (clickhouse ClickHouseDB) UpdateTableData(
 		return wrap.Error(err, "invalid table name")
 	}
 
-	var builder QueryBuilder
-	builder.WriteString("INSERT INTO ")
-	builder.WriteIdentifier(table)
-	queryString := builder.String()
+	var query QueryBuilder
+	query.WriteString("INSERT INTO ")
+	query.WriteIdentifier(table)
+	queryString := query.String()
 
 	fieldsPerRow := len(schema.Columns) + 1 // +1 for id field
 

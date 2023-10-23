@@ -13,58 +13,58 @@ type QueryBuilder struct {
 	strings.Builder
 }
 
-func (builder *QueryBuilder) WriteInt(i int) {
-	builder.WriteString(strconv.Itoa(i))
+func (query *QueryBuilder) WriteInt(i int) {
+	query.WriteString(strconv.Itoa(i))
 }
 
-func (builder *QueryBuilder) WriteFloat(f float64) {
-	builder.WriteString(strconv.FormatFloat(f, 'f', -1, 64))
+func (query *QueryBuilder) WriteFloat(f float64) {
+	query.WriteString(strconv.FormatFloat(f, 'f', -1, 64))
 }
 
 // Must only be called after calling ValidateIdentifier/ValidateIdentifiers on the given identifier.
-func (builder *QueryBuilder) WriteIdentifier(identifier string) {
-	builder.WriteByte('`')
-	builder.WriteString(identifier)
-	builder.WriteByte('`')
+func (query *QueryBuilder) WriteIdentifier(identifier string) {
+	query.WriteByte('`')
+	query.WriteString(identifier)
+	query.WriteByte('`')
 }
 
-func (builder *QueryBuilder) WriteAggregation(valueAggregation db.ValueAggregation) error {
+func (query *QueryBuilder) WriteAggregation(valueAggregation db.ValueAggregation) error {
 	aggregation, ok := clickhouseAggregations.GetName(valueAggregation.Aggregation)
 	if !ok {
 		return errors.New("invalid aggregation type for value aggregation in query")
 	}
-	builder.WriteString(aggregation)
+	query.WriteString(aggregation)
 
-	builder.WriteByte('(')
-	builder.WriteIdentifier(valueAggregation.BaseColumnName)
-	builder.WriteByte(')')
+	query.WriteByte('(')
+	query.WriteIdentifier(valueAggregation.BaseColumnName)
+	query.WriteByte(')')
 	return nil
 }
 
-func (builder *QueryBuilder) WriteSplit(split db.Split) error {
+func (query *QueryBuilder) WriteSplit(split db.Split) error {
 	switch split.BaseColumnDataType {
 	case db.DataTypeInt:
 		if split.IntegerInterval != 0 {
 			// https://clickhouse.com/docs/en/sql-reference/functions/rounding-functions#floorx-n
-			builder.WriteString("(floor(")
-			builder.WriteIdentifier(split.BaseColumnName)
-			builder.WriteString(" / ")
-			builder.WriteInt(split.IntegerInterval)
-			builder.WriteString(") * ")
-			builder.WriteInt(split.IntegerInterval)
-			builder.WriteByte(')')
+			query.WriteString("(floor(")
+			query.WriteIdentifier(split.BaseColumnName)
+			query.WriteString(" / ")
+			query.WriteInt(split.IntegerInterval)
+			query.WriteString(") * ")
+			query.WriteInt(split.IntegerInterval)
+			query.WriteByte(')')
 			return nil
 		}
 	case db.DataTypeFloat:
 		if split.FloatInterval != 0 {
 			// https://clickhouse.com/docs/en/sql-reference/functions/rounding-functions#floorx-n
-			builder.WriteString("(floor(")
-			builder.WriteIdentifier(split.BaseColumnName)
-			builder.WriteString(" / ")
-			builder.WriteFloat(split.FloatInterval)
-			builder.WriteString(") * ")
-			builder.WriteFloat(split.FloatInterval)
-			builder.WriteByte(')')
+			query.WriteString("(floor(")
+			query.WriteIdentifier(split.BaseColumnName)
+			query.WriteString(" / ")
+			query.WriteFloat(split.FloatInterval)
+			query.WriteString(") * ")
+			query.WriteFloat(split.FloatInterval)
+			query.WriteByte(')')
 			return nil
 		}
 	case db.DataTypeTimestamp:
@@ -74,34 +74,34 @@ func (builder *QueryBuilder) WriteSplit(split db.Split) error {
 			// https://clickhouse.com/docs/en/sql-reference/functions/date-time-functions#tostartofyear
 			switch dateInterval {
 			case db.DateIntervalYear:
-				builder.WriteString("toStartOfYear(")
+				query.WriteString("toStartOfYear(")
 			case db.DateIntervalQuarter:
-				builder.WriteString("toStartOfQuarter(")
+				query.WriteString("toStartOfQuarter(")
 			case db.DateIntervalMonth:
-				builder.WriteString("toStartOfMonth(")
+				query.WriteString("toStartOfMonth(")
 			case db.DateIntervalWeek:
-				builder.WriteString("toStartOfWeek(")
+				query.WriteString("toStartOfWeek(")
 			case db.DateIntervalDay:
-				builder.WriteString("toStartOfDay(")
+				query.WriteString("toStartOfDay(")
 			default:
 				return fmt.Errorf("unrecognized date interval type '%v'", dateInterval)
 			}
 
-			builder.WriteIdentifier(split.BaseColumnName)
+			query.WriteIdentifier(split.BaseColumnName)
 
 			if dateInterval == db.DateIntervalWeek {
 				// Setting mode so that week starts on Mondays
 				// https://clickhouse.com/docs/en/sql-reference/functions/date-time-functions#toweek
-				builder.WriteString(", 1)")
+				query.WriteString(", 1)")
 			} else {
-				builder.WriteByte(')')
+				query.WriteByte(')')
 			}
 			return nil
 		}
 	}
 
 	// If we get here, no interval was specified
-	builder.WriteIdentifier(split.BaseColumnName)
+	query.WriteIdentifier(split.BaseColumnName)
 	return nil
 }
 
