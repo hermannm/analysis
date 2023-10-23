@@ -13,20 +13,22 @@ func (clickhouse ClickHouseDB) CreateStoredSchemasTable(ctx context.Context) err
 	builder.WriteIdentifier(db.StoredSchemasTable)
 	builder.WriteString(" (")
 
-	builder.WriteIdentifier(db.StoredSchemaColumnNames)
+	builder.WriteIdentifier(db.StoredSchemaName)
 	builder.WriteString(" String, ")
 
 	builder.WriteIdentifier(db.StoredSchemaColumnNames)
 	builder.WriteString(" Array(String), ")
 
 	builder.WriteIdentifier(db.StoredSchemaColumnDataTypes)
-	builder.WriteString(" Array(UInt8), ")
+	builder.WriteString(" Array(Int8), ")
 
 	builder.WriteIdentifier(db.StoredSchemaColumnOptionals)
 	builder.WriteString(" Array(Bool))")
 
 	builder.WriteString(" ENGINE = MergeTree()")
-	builder.WriteString(" PRIMARY KEY (name)")
+	builder.WriteString(" PRIMARY KEY (")
+	builder.WriteIdentifier(db.StoredSchemaName)
+	builder.WriteByte(')')
 
 	return clickhouse.conn.Exec(ctx, builder.String())
 }

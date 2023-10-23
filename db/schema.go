@@ -204,7 +204,7 @@ const (
 
 type StoredTableSchema struct {
 	ColumnNames []string `json:"column_names"`
-	DataTypes   []uint8  `json:"column_data_types"`
+	DataTypes   []int8   `json:"column_data_types"`
 	Optionals   []bool   `json:"column_optionals"`
 }
 
@@ -234,13 +234,13 @@ func (schema TableSchema) ToStored() StoredTableSchema {
 
 	storedSchema := StoredTableSchema{
 		ColumnNames: make([]string, columnCount),
-		DataTypes:   make([]uint8, columnCount),
+		DataTypes:   make([]int8, columnCount),
 		Optionals:   make([]bool, columnCount),
 	}
 
 	for i, column := range schema.Columns {
 		storedSchema.ColumnNames[i] = column.Name
-		storedSchema.DataTypes[i] = uint8(column.DataType)
+		storedSchema.DataTypes[i] = int8(column.DataType)
 		storedSchema.Optionals[i] = column.Optional
 	}
 

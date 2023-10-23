@@ -2,7 +2,7 @@ package db
 
 import "hermannm.dev/enumnames"
 
-type SortOrder uint8
+type SortOrder int8
 
 const (
 	SortOrderAscending SortOrder = iota + 1

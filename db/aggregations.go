@@ -4,7 +4,7 @@ import (
 	"hermannm.dev/enumnames"
 )
 
-type Aggregation uint8
+type Aggregation int8
 
 const (
 	AggregationSum Aggregation = iota + 1

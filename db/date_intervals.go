@@ -2,7 +2,7 @@ package db
 
 import "hermannm.dev/enumnames"
 
-type DateInterval uint8
+type DateInterval int8
 
 const (
 	DateIntervalYear DateInterval = iota + 1

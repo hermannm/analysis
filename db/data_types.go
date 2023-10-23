@@ -4,7 +4,7 @@ import (
 	"hermannm.dev/enumnames"
 )
 
-type DataType uint8
+type DataType int8
 
 const (
 	DataTypeText DataType = iota + 1

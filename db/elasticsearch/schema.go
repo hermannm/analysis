@@ -18,7 +18,7 @@ func (elastic ElasticsearchDB) CreateStoredSchemasTable(ctx context.Context) err
 	// Array fields in Elasticsearch don't have their own mapping: any field can contain multiple
 	// values of that type (see https://www.elastic.co/guide/en/elasticsearch/reference/8.10/array.html).
 	mappings.Properties[db.StoredSchemaColumnNames] = elastictypes.NewTextProperty()
-	mappings.Properties[db.StoredSchemaColumnDataTypes] = elastictypes.NewIntegerNumberProperty()
+	mappings.Properties[db.StoredSchemaColumnDataTypes] = elastictypes.NewByteNumberProperty()
 	mappings.Properties[db.StoredSchemaColumnOptionals] = elastictypes.NewBooleanProperty()
 
 	_, err := elastic.client.Indices.Create(db.StoredSchemasTable).Mappings(mappings).Do(ctx)
