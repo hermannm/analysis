@@ -1,10 +1,11 @@
 package elasticsearch
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 
-	elastictypes "github.com/elastic/go-elasticsearch/v8/typedapi/types"
+	"github.com/elastic/go-elasticsearch/v8/esutil"
 	"github.com/google/uuid"
 	"hermannm.dev/analysis/db"
 	"hermannm.dev/wrap"
@@ -27,13 +28,23 @@ func (elastic ElasticsearchDB) CreateTable(
 	return nil
 }
 
+const BulkInsertSize = 1000
+
 func (elastic ElasticsearchDB) UpdateTableData(
 	ctx context.Context,
 	table string,
 	schema db.TableSchema,
 	data db.DataSource,
 ) error {
-	bulk := elastic.client.Bulk()
+	bulk, err := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
+		Client: elastic.untypedClient,
+		Index:  table,
+	})
+	if err != nil {
+		return wrap.Error(err, "failed to prepare bulk data insert")
+	}
+
+	ctx, cancel := context.WithCancelCause(ctx)
 
 	for {
 		row, rowNumber, done, err := data.ReadRow()
@@ -49,11 +60,6 @@ func (elastic ElasticsearchDB) UpdateTableData(
 			return wrap.Errorf(err, "failed to generate unique ID for row %d", rowNumber)
 		}
 		idString := id.String()
-
-		operation := elastictypes.CreateOperation{
-			Id_:    &idString,
-			Index_: &table,
-		}
 
 		rowMap, err := schema.ConvertRowToMap(row)
 		if err != nil {
@@ -73,17 +79,27 @@ func (elastic ElasticsearchDB) UpdateTableData(
 			)
 		}
 
-		if err := bulk.CreateOp(operation, rowJSON); err != nil {
-			return wrap.Errorf(
-				err,
-				"failed to add create operation for row %d to bulk insert",
-				rowNumber,
-			)
+		if err := bulk.Add(ctx, esutil.BulkIndexerItem{
+			DocumentID: idString,
+			Body:       bytes.NewReader(rowJSON),
+			OnFailure: func(ctx context.Context, item esutil.BulkIndexerItem, response esutil.BulkIndexerResponseItem, err error) {
+				cancel(wrap.Errorf(err, "failed to insert row %d", rowNumber))
+			},
+		}); err != nil {
+			return wrap.Errorf(err, "failed to add row %d to bulk insert", rowNumber)
 		}
 	}
 
-	if _, err := bulk.Do(ctx); err != nil {
-		return wrap.Error(err, "bulk insert request failed")
+	if err := bulk.Close(ctx); err != nil {
+		return wrap.Error(err, "failed to finish bulk insert")
+	}
+
+	if err := ctx.Err(); err != nil {
+		if cause := context.Cause(ctx); cause != nil {
+			return cause
+		} else {
+			return wrap.Error(err, "bulk insert was canceled with error")
+		}
 	}
 
 	return nil

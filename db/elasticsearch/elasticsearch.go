@@ -10,19 +10,27 @@ import (
 )
 
 type ElasticsearchDB struct {
-	client *elasticsearch.TypedClient
+	client        *elasticsearch.TypedClient
+	untypedClient *elasticsearch.Client
 }
 
 func NewElasticsearchDB(config config.Config) (ElasticsearchDB, error) {
-	client, err := elasticsearch.NewTypedClient(elasticsearch.Config{
+	elasticConfig := elasticsearch.Config{
 		Addresses:         []string{config.Elasticsearch.Address},
 		EnableDebugLogger: config.Elasticsearch.Debug,
-	})
+	}
+
+	client, err := elasticsearch.NewTypedClient(elasticConfig)
 	if err != nil {
 		return ElasticsearchDB{}, wrap.Error(err, "failed to connect to Elasticsearch")
 	}
 
-	return ElasticsearchDB{client: client}, nil
+	untypedClient, err := elasticsearch.NewClient(elasticConfig)
+	if err != nil {
+		return ElasticsearchDB{}, wrap.Error(err, "failed to connect to Elasticsearch")
+	}
+
+	return ElasticsearchDB{client: client, untypedClient: untypedClient}, nil
 }
 
 const elasticIndexNotFoundException = "index_not_found_exception"
