@@ -3,7 +3,11 @@ package db
 import "context"
 
 type AnalysisDB interface {
-	RunAnalysisQuery(ctx context.Context, query AnalysisQuery, table string) (AnalysisResult, error)
+	RunAnalysisQuery(
+		ctx context.Context,
+		analysis AnalysisQuery,
+		table string,
+	) (AnalysisResult, error)
 
 	CreateTable(ctx context.Context, table string, schema TableSchema) error
 
