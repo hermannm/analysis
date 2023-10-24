@@ -30,7 +30,11 @@ func (clickhouse ClickHouseDB) CreateStoredSchemasTable(ctx context.Context) err
 	query.WriteIdentifier(db.StoredSchemaName)
 	query.WriteByte(')')
 
-	return clickhouse.conn.Exec(ctx, query.String())
+	if err := clickhouse.conn.Exec(ctx, query.String()); err != nil {
+		return wrap.Error(err, "ClickHouse table creation query failed")
+	}
+
+	return nil
 }
 
 func (clickhouse ClickHouseDB) StoreTableSchema(
@@ -50,7 +54,7 @@ func (clickhouse ClickHouseDB) StoreTableSchema(
 	storedSchema := schema.ToStored()
 
 	shouldWaitForResult := true
-	return clickhouse.conn.AsyncInsert(
+	if err := clickhouse.conn.AsyncInsert(
 		ctx,
 		query.String(),
 		shouldWaitForResult,
@@ -58,7 +62,11 @@ func (clickhouse ClickHouseDB) StoreTableSchema(
 		storedSchema.ColumnNames,
 		storedSchema.DataTypes,
 		storedSchema.Optionals,
-	)
+	); err != nil {
+		return wrap.Error(err, "ClickHouse schema insertion query failed")
+	}
+
+	return nil
 }
 
 func (clickhouse ClickHouseDB) GetTableSchema(
@@ -84,7 +92,7 @@ func (clickhouse ClickHouseDB) GetTableSchema(
 
 	result := clickhouse.conn.QueryRow(ctx, query.String(), table)
 	if err := result.Err(); err != nil {
-		return db.TableSchema{}, wrap.Error(err, "table schema query failed")
+		return db.TableSchema{}, wrap.Error(err, "ClickHouse schema fetching query failed")
 	}
 
 	var storedSchema db.StoredTableSchema
@@ -116,7 +124,7 @@ func (clickhouse ClickHouseDB) DeleteTableSchema(
 	query.WriteString(" = ?)")
 
 	if err := clickhouse.conn.Exec(ctx, query.String(), table); err != nil {
-		return wrap.Error(err, "delete table schema query failed")
+		return wrap.Error(err, "ClickHouse schema deletion query failed")
 	}
 
 	return nil

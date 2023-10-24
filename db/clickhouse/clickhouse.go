@@ -11,7 +11,7 @@ import (
 	"hermannm.dev/wrap"
 )
 
-// Implements db.AnalysisDB for ClickHouse
+// Implements db.AnalysisDB for ClickHouse.
 type ClickHouseDB struct {
 	conn clickhousedriver.Conn
 }
@@ -59,7 +59,7 @@ func (clickhouse ClickHouseDB) DropTable(
 			return true, nil
 		}
 
-		return false, wrap.Error(err, "drop table query failed")
+		return false, wrap.Error(err, "ClickHouse table drop query failed")
 	}
 
 	return false, nil

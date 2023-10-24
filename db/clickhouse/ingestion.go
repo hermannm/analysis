@@ -44,12 +44,13 @@ func (clickhouse ClickHouseDB) CreateTable(
 			query.WriteString(", ")
 		}
 	}
+
 	query.WriteByte(')')
 	query.WriteString(" ENGINE = MergeTree()")
 	query.WriteString(" PRIMARY KEY (id)")
 
 	if err := clickhouse.conn.Exec(ctx, query.String()); err != nil {
-		return wrap.Error(err, "create table query failed")
+		return wrap.Errorf(err, "ClickHouse table creation query failed for table '%s'", table)
 	}
 
 	return nil

@@ -17,7 +17,7 @@ func schemaToElasticMappings(schema db.TableSchema) (*elastictypes.TypeMapping, 
 		if err != nil {
 			return nil, wrap.Errorf(
 				err,
-				"failed to convert data type to property for column '%s'",
+				"failed to convert data type to Elasticsearch property for column '%s'",
 				column.Name,
 			)
 		}

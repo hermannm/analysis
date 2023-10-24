@@ -9,6 +9,7 @@ import (
 	"hermannm.dev/wrap"
 )
 
+// Implements db.AnalysisDB for Elasticsearch.
 type ElasticsearchDB struct {
 	client        *elasticsearch.TypedClient
 	untypedClient *elasticsearch.Client
@@ -27,7 +28,7 @@ func NewElasticsearchDB(config config.Config) (ElasticsearchDB, error) {
 
 	untypedClient, err := elasticsearch.NewClient(elasticConfig)
 	if err != nil {
-		return ElasticsearchDB{}, wrap.Error(err, "failed to connect to Elasticsearch")
+		return ElasticsearchDB{}, wrap.Error(err, "failed to connect untyped API to Elasticsearch")
 	}
 
 	return ElasticsearchDB{client: client, untypedClient: untypedClient}, nil
@@ -45,7 +46,7 @@ func (elastic ElasticsearchDB) DropTable(
 			return true, nil
 		}
 
-		return false, wrap.Error(err, "delete index request failed")
+		return false, wrap.Error(err, "Elasticsearch index deletion request failed")
 	}
 
 	return false, nil

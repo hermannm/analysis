@@ -7,7 +7,6 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"hermannm.dev/analysis/db"
-	"hermannm.dev/analysis/log"
 	"hermannm.dev/wrap"
 )
 
@@ -21,11 +20,9 @@ func (clickhouse ClickHouseDB) RunAnalysisQuery(
 		return db.AnalysisResult{}, wrap.Error(err, "failed to parse query")
 	}
 
-	log.Infof("generated query:\n%s", queryString)
-
 	rows, err := clickhouse.conn.Query(ctx, queryString)
 	if err != nil {
-		return db.AnalysisResult{}, wrap.Error(err, "failed to execute query on database")
+		return db.AnalysisResult{}, wrap.Error(err, "ClickHouse failed to execute query")
 	}
 
 	analysisResult, err := parseAnalysisResultRows(rows, analysis)
