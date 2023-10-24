@@ -10,13 +10,23 @@ An API server letting users upload CSV data and perform analytical queries on it
    cp .env.example .env
    ```
 
-2. Start ClickHouse with Docker:
+2. Set the `DATABASE` field in the `.env` file to either `clickhouse` or `elasticsearch`
 
-   ```
-   docker compose up
-   ```
+3. Start the database with [Docker](https://www.docker.com/products/docker-desktop/)
 
-3. Run the API server with Go:
+   - For ClickHouse:
+
+     ```
+     docker compose up clickhouse
+     ```
+
+   - For Elasticsearch:
+
+     ```
+     docker compose up elasticsearch
+     ```
+
+4. Run the API server with [Go](https://go.dev/):
 
    ```
    go run .
