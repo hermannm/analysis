@@ -34,12 +34,13 @@ func NewElasticsearchDB(config config.Config) (ElasticsearchDB, error) {
 	return ElasticsearchDB{client: client, untypedClient: untypedClient}, nil
 }
 
-const elasticIndexNotFoundException = "index_not_found_exception"
-
 func (elastic ElasticsearchDB) DropTable(
 	ctx context.Context,
 	index string,
 ) (alreadyDropped bool, err error) {
+	// See https://www.elastic.co/guide/en/elasticsearch/reference/8.10/troubleshooting-searches.html#troubleshooting-searches-exists
+	const elasticIndexNotFoundException = "index_not_found_exception"
+
 	if _, err := elastic.client.Indices.Delete(index).Do(ctx); err != nil {
 		elasticErr, isElasticErr := err.(*elastictypes.ElasticsearchError)
 		if isElasticErr && elasticErr.ErrorCause.Type == elasticIndexNotFoundException {

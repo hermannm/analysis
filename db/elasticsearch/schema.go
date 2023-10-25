@@ -9,8 +9,6 @@ import (
 	"hermannm.dev/wrap"
 )
 
-const elasticResourceAlreadyExistsException = "resource_already_exists_exception"
-
 func (elastic ElasticsearchDB) CreateStoredSchemasTable(ctx context.Context) error {
 	mappings := new(elastictypes.TypeMapping)
 	mappings.Properties = make(map[string]elastictypes.Property, 4)
@@ -20,6 +18,8 @@ func (elastic ElasticsearchDB) CreateStoredSchemasTable(ctx context.Context) err
 	mappings.Properties[db.StoredSchemaColumnNames] = elastictypes.NewTextProperty()
 	mappings.Properties[db.StoredSchemaColumnDataTypes] = elastictypes.NewByteNumberProperty()
 	mappings.Properties[db.StoredSchemaColumnOptionals] = elastictypes.NewBooleanProperty()
+
+	const elasticResourceAlreadyExistsException = "resource_already_exists_exception"
 
 	_, err := elastic.client.Indices.Create(db.StoredSchemasTable).Mappings(mappings).Do(ctx)
 	if err != nil {
