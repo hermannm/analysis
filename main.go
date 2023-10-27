@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 
@@ -11,11 +12,13 @@ import (
 	"hermannm.dev/analysis/db"
 	"hermannm.dev/analysis/db/clickhouse"
 	"hermannm.dev/analysis/db/elasticsearch"
-	"hermannm.dev/analysis/log"
+	"hermannm.dev/devlog"
+	"hermannm.dev/devlog/log"
 )
 
 func main() {
-	log.Initialize()
+	logger := slog.New(devlog.NewHandler(os.Stdout, &devlog.Options{Level: slog.LevelDebug}))
+	slog.SetDefault(logger)
 
 	log.Info("loading environment variables...")
 	conf, err := config.ReadFromEnv()
@@ -63,7 +66,7 @@ func dropTableAndSchema(db db.AnalysisDB, table string) {
 
 	alreadyDropped, err := db.DropTable(ctx, table)
 	if err != nil {
-		log.Errorf(
+		log.WarnErrorf(
 			err,
 			"failed to drop table '%s' (from DEBUG_DROP_TABLE_ON_STARTUP in env)",
 			table,
@@ -75,7 +78,7 @@ func dropTableAndSchema(db db.AnalysisDB, table string) {
 		log.Infof("dropped table '%s' (from DEBUG_DROP_TABLE_ON_STARTUP in env)", table)
 
 		if err := db.DeleteTableSchema(ctx, table); err != nil {
-			log.Errorf(err, "failed to delete schema for dropped table '%s'", table)
+			log.WarnErrorf(err, "failed to delete schema for dropped table '%s'", table)
 		}
 	}
 }

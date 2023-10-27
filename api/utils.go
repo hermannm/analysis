@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	"hermannm.dev/analysis/log"
+	"hermannm.dev/devlog/log"
 	"hermannm.dev/wrap"
 )
 
