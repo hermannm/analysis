@@ -4,26 +4,26 @@ import (
 	"context"
 	"encoding/json"
 
-	elastictypes "github.com/elastic/go-elasticsearch/v8/typedapi/types"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
 	"hermannm.dev/analysis/db"
 	"hermannm.dev/wrap"
 )
 
 func (elastic ElasticsearchDB) CreateStoredSchemasTable(ctx context.Context) error {
-	mappings := new(elastictypes.TypeMapping)
-	mappings.Properties = make(map[string]elastictypes.Property, 4)
+	mappings := new(types.TypeMapping)
+	mappings.Properties = make(map[string]types.Property, 4)
 
 	// Array fields in Elasticsearch don't have their own mapping: any field can contain multiple
 	// values of that type (see https://www.elastic.co/guide/en/elasticsearch/reference/8.10/array.html).
-	mappings.Properties[db.StoredSchemaColumnNames] = elastictypes.NewTextProperty()
-	mappings.Properties[db.StoredSchemaColumnDataTypes] = elastictypes.NewByteNumberProperty()
-	mappings.Properties[db.StoredSchemaColumnOptionals] = elastictypes.NewBooleanProperty()
+	mappings.Properties[db.StoredSchemaColumnNames] = types.NewTextProperty()
+	mappings.Properties[db.StoredSchemaColumnDataTypes] = types.NewByteNumberProperty()
+	mappings.Properties[db.StoredSchemaColumnOptionals] = types.NewBooleanProperty()
 
 	const elasticResourceAlreadyExistsException = "resource_already_exists_exception"
 
 	_, err := elastic.client.Indices.Create(db.StoredSchemasTable).Mappings(mappings).Do(ctx)
 	if err != nil {
-		elasticErr, isElasticErr := err.(*elastictypes.ElasticsearchError)
+		elasticErr, isElasticErr := err.(*types.ElasticsearchError)
 		if isElasticErr && elasticErr.ErrorCause.Type == elasticResourceAlreadyExistsException {
 			return nil
 		}

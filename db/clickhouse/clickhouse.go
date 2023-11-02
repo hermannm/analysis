@@ -4,23 +4,23 @@ import (
 	"context"
 	"fmt"
 
-	clickhousego "github.com/ClickHouse/clickhouse-go/v2"
-	clickhousedriver "github.com/ClickHouse/clickhouse-go/v2/lib/driver"
-	clickhouseproto "github.com/ClickHouse/clickhouse-go/v2/lib/proto"
+	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
+	"github.com/ClickHouse/clickhouse-go/v2/lib/proto"
 	"hermannm.dev/analysis/config"
 	"hermannm.dev/wrap"
 )
 
 // Implements db.AnalysisDB for ClickHouse.
 type ClickHouseDB struct {
-	conn clickhousedriver.Conn
+	conn driver.Conn
 }
 
 func NewClickHouseDB(config config.Config) (ClickHouseDB, error) {
 	// Options docs: https://clickhouse.com/docs/en/integrations/go#connection-settings
-	conn, err := clickhousego.Open(&clickhousego.Options{
+	conn, err := clickhouse.Open(&clickhouse.Options{
 		Addr: []string{config.ClickHouse.Address},
-		Auth: clickhousego.Auth{
+		Auth: clickhouse.Auth{
 			Database: config.ClickHouse.DatabaseName,
 			Username: config.ClickHouse.Username,
 			Password: config.ClickHouse.Password,
@@ -29,7 +29,7 @@ func NewClickHouseDB(config config.Config) (ClickHouseDB, error) {
 		Debugf: func(format string, v ...any) {
 			fmt.Printf(format+"\n", v...)
 		},
-		Compression: &clickhousego.Compression{Method: clickhousego.CompressionLZ4},
+		Compression: &clickhouse.Compression{Method: clickhouse.CompressionLZ4},
 	})
 	if err != nil {
 		return ClickHouseDB{}, wrap.Error(err, "failed to connect to ClickHouse")
@@ -54,7 +54,7 @@ func (clickhouse ClickHouseDB) DropTable(
 	const clickhouseUnknownTableErrorCode = 60
 
 	if err := clickhouse.conn.Exec(ctx, query.String()); err != nil {
-		clickHouseErr, isClickHouseErr := err.(*clickhouseproto.Exception)
+		clickHouseErr, isClickHouseErr := err.(*proto.Exception)
 		if isClickHouseErr && clickHouseErr.Code == clickhouseUnknownTableErrorCode {
 			return true, nil
 		}

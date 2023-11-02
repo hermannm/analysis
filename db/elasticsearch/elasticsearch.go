@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/elastic/go-elasticsearch/v8"
-	elastictypes "github.com/elastic/go-elasticsearch/v8/typedapi/types"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
 	"hermannm.dev/analysis/config"
 	"hermannm.dev/wrap"
 )
@@ -42,7 +42,7 @@ func (elastic ElasticsearchDB) DropTable(
 	const elasticIndexNotFoundException = "index_not_found_exception"
 
 	if _, err := elastic.client.Indices.Delete(index).Do(ctx); err != nil {
-		elasticErr, isElasticErr := err.(*elastictypes.ElasticsearchError)
+		elasticErr, isElasticErr := err.(*types.ElasticsearchError)
 		if isElasticErr && elasticErr.ErrorCause.Type == elasticIndexNotFoundException {
 			return true, nil
 		}
