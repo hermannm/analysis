@@ -14,6 +14,7 @@ import (
 	"hermannm.dev/analysis/db/elasticsearch"
 	"hermannm.dev/devlog"
 	"hermannm.dev/devlog/log"
+	"hermannm.dev/wrap"
 )
 
 func main() {
@@ -27,7 +28,25 @@ func main() {
 		os.Exit(1)
 	}
 
+	db, err := initializeDatabase(conf)
+	if err != nil {
+		log.Error(err, "failed to initialize database")
+		os.Exit(1)
+	}
+
+	analysisAPI := api.NewAnalysisAPI(db, http.DefaultServeMux, conf)
+
+	log.Infof("listening on port %s...", conf.API.Port)
+	if err := analysisAPI.ListenAndServe(); err != nil {
+		log.Error(err, "server stopped")
+		os.Exit(1)
+	}
+}
+
+func initializeDatabase(conf config.Config) (db.AnalysisDB, error) {
 	var db db.AnalysisDB
+	var err error
+
 	switch conf.DB {
 	case config.DBClickHouse:
 		log.Info("connecting to ClickHouse...")
@@ -39,8 +58,7 @@ func main() {
 		err = fmt.Errorf("unrecognized database '%s' from config", conf.DB)
 	}
 	if err != nil {
-		log.Error(err, "failed to initialize database")
-		os.Exit(1)
+		return nil, err
 	}
 
 	if conf.DropTableOnStartup != "" && !conf.IsProduction {
@@ -48,17 +66,10 @@ func main() {
 	}
 
 	if err := db.CreateStoredSchemasTable(context.Background()); err != nil {
-		log.Error(err, "failed to create table for storing schemas")
-		os.Exit(1)
+		return nil, wrap.Error(err, "failed to create table for storing schemas")
 	}
 
-	analysisAPI := api.NewAnalysisAPI(db, http.DefaultServeMux, conf)
-
-	log.Infof("listening on port %s...", conf.API.Port)
-	if err := analysisAPI.ListenAndServe(); err != nil {
-		log.Error(err, "server stopped")
-		os.Exit(1)
-	}
+	return db, nil
 }
 
 func dropTableAndSchema(db db.AnalysisDB, table string) {
