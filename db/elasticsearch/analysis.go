@@ -42,8 +42,6 @@ const (
 func (elastic ElasticsearchDB) buildAnalysisQueryRequest(
 	analysis db.AnalysisQuery,
 ) (*search.Search, error) {
-	query := types.NewQuery()
-
 	rowSplit, err := createSplit(analysis.RowSplit)
 	if err != nil {
 		return nil, wrap.Error(err, "failed to create row split")
@@ -71,7 +69,7 @@ func (elastic ElasticsearchDB) buildAnalysisQueryRequest(
 
 	// Size 0, since we only want aggregation results
 	// https://www.elastic.co/guide/en/elasticsearch/reference/8.10/search-aggregations.html#return-only-agg-results
-	return elastic.client.Search().Size(0).Query(query).Aggregations(aggregations), nil
+	return elastic.client.Search().Size(0).Aggregations(aggregations), nil
 }
 
 func createSplit(split db.Split) (types.Aggregations, error) {
