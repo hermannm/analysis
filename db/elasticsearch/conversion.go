@@ -50,7 +50,7 @@ func sortOrderToElasticBucket(sortOrder db.SortOrder) (map[string]sortorder.Sort
 
 	// Bucket aggregation results have a "key" field with the bucket value
 	// https://www.elastic.co/guide/en/elasticsearch/reference/8.10/search-aggregations-bucket-histogram-aggregation.html#_order_2
-	return map[string]sortorder.SortOrder{"key": elasticSortOrder}, nil
+	return map[string]sortorder.SortOrder{"_key": elasticSortOrder}, nil
 }
 
 func dateIntervalToElastic(
