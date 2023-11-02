@@ -15,7 +15,7 @@ func (elastic ElasticsearchDB) RunAnalysisQuery(
 	analysis db.AnalysisQuery,
 	table string,
 ) (db.AnalysisResult, error) {
-	request, err := elastic.buildAnalysisQueryRequest(analysis)
+	request, err := elastic.buildAnalysisQueryRequest(analysis, table)
 	if err != nil {
 		return db.AnalysisResult{}, wrap.Error(err, "failed to parse query")
 	}
@@ -41,6 +41,7 @@ const (
 
 func (elastic ElasticsearchDB) buildAnalysisQueryRequest(
 	analysis db.AnalysisQuery,
+	table string,
 ) (*search.Search, error) {
 	rowSplit, err := createSplit(analysis.RowSplit)
 	if err != nil {
@@ -69,7 +70,7 @@ func (elastic ElasticsearchDB) buildAnalysisQueryRequest(
 
 	// Size 0, since we only want aggregation results
 	// https://www.elastic.co/guide/en/elasticsearch/reference/8.10/search-aggregations.html#return-only-agg-results
-	return elastic.client.Search().Size(0).Aggregations(aggregations), nil
+	return elastic.client.Search().Index(table).Aggregations(aggregations).Size(0), nil
 }
 
 func createSplit(split db.Split) (types.Aggregations, error) {
