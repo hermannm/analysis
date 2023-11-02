@@ -28,7 +28,7 @@ func (query *QueryBuilder) WriteIdentifier(identifier string) {
 	query.WriteByte('`')
 }
 
-func (query *QueryBuilder) WriteAggregation(valueAggregation db.ValueAggregation) error {
+func (query *QueryBuilder) WriteValueAggregation(valueAggregation db.ValueAggregation) error {
 	aggregation, ok := clickhouseAggregations.GetName(valueAggregation.Aggregation)
 	if !ok {
 		return errors.New("invalid aggregation type for value aggregation in query")

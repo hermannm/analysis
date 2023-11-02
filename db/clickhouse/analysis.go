@@ -69,7 +69,7 @@ func buildAnalysisQueryString(analysis db.AnalysisQuery, table string) (string, 
 	}
 	query.WriteString(" AS row_split, ")
 
-	if err := query.WriteAggregation(analysis.ValueAggregation); err != nil {
+	if err := query.WriteValueAggregation(analysis.ValueAggregation); err != nil {
 		return "", err
 	}
 	query.WriteString(" AS value_aggregation ")
@@ -85,7 +85,7 @@ func buildAnalysisQueryString(analysis db.AnalysisQuery, table string) (string, 
 	query.WriteString(" GROUP BY ")
 	query.WriteIdentifier(analysis.RowSplit.BaseColumnName)
 	query.WriteString(" ORDER BY ")
-	if err := query.WriteAggregation(analysis.ValueAggregation); err != nil {
+	if err := query.WriteValueAggregation(analysis.ValueAggregation); err != nil {
 		return "", err
 	}
 	query.WriteString(" DESC")
