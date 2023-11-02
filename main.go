@@ -34,10 +34,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	analysisAPI := api.NewAnalysisAPI(db, http.DefaultServeMux, conf)
+	api := api.NewAnalysisAPI(db, http.DefaultServeMux, conf)
 
 	log.Infof("listening on port %s...", conf.API.Port)
-	if err := analysisAPI.ListenAndServe(); err != nil {
+	if err := api.ListenAndServe(); err != nil {
 		log.Error(err, "server stopped")
 		os.Exit(1)
 	}
