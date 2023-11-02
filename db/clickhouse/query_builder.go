@@ -29,6 +29,10 @@ func (query *QueryBuilder) WriteIdentifier(identifier string) {
 }
 
 func (query *QueryBuilder) WriteValueAggregation(valueAggregation db.ValueAggregation) error {
+	if err := valueAggregation.BaseColumnDataType.IsValidForAggregation(); err != nil {
+		return err
+	}
+
 	aggregation, ok := clickhouseAggregations.GetName(valueAggregation.Aggregation)
 	if !ok {
 		return errors.New("invalid aggregation type for value aggregation in query")

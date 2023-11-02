@@ -3,7 +3,6 @@ package clickhouse
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"hermannm.dev/analysis/db"
@@ -36,15 +35,6 @@ func (clickhouse ClickHouseDB) RunAnalysisQuery(
 func buildAnalysisQueryString(analysis db.AnalysisQuery, table string) (string, error) {
 	if analysis.ColumnSplit.Limit == 0 || analysis.RowSplit.Limit == 0 {
 		return "", errors.New("column/row split limit cannot be 0")
-	}
-
-	switch analysis.ValueAggregation.BaseColumnDataType {
-	case db.DataTypeInt, db.DataTypeFloat:
-	default:
-		return "", fmt.Errorf(
-			"value aggregation can only be done on INTEGER or FLOAT columns, not %v",
-			analysis.ValueAggregation.BaseColumnDataType,
-		)
 	}
 
 	if err := ValidateIdentifiers(

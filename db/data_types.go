@@ -1,6 +1,8 @@
 package db
 
 import (
+	"fmt"
+
 	"hermannm.dev/enumnames"
 )
 
@@ -24,6 +26,17 @@ var dataTypeMap = enumnames.NewMap(map[DataType]string{
 
 func (dataType DataType) IsValid() bool {
 	return dataTypeMap.ContainsEnumValue(dataType)
+}
+
+func (dataType DataType) IsValidForAggregation() error {
+	if dataType != DataTypeInt && dataType != DataTypeFloat {
+		return fmt.Errorf(
+			"value aggregation can only be done on INTEGER or FLOAT columns, not %v",
+			dataType,
+		)
+	}
+
+	return nil
 }
 
 func (dataType DataType) String() string {
