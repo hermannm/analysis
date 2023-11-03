@@ -9,18 +9,14 @@ import (
 	"hermannm.dev/wrap"
 )
 
-func (clickhouse ClickHouseDB) CreateTable(
-	ctx context.Context,
-	table string,
-	schema db.TableSchema,
-) error {
-	if err := ValidateIdentifier(table); err != nil {
+func (clickhouse ClickHouseDB) CreateTable(ctx context.Context, schema db.TableSchema) error {
+	if err := ValidateIdentifier(schema.TableName); err != nil {
 		return wrap.Error(err, "invalid table name")
 	}
 
 	var query QueryBuilder
 	query.WriteString("CREATE TABLE ")
-	query.WriteIdentifier(table)
+	query.WriteIdentifier(schema.TableName)
 	query.WriteString(" (`id` UUID, ")
 
 	for i, column := range schema.Columns {
@@ -50,7 +46,11 @@ func (clickhouse ClickHouseDB) CreateTable(
 	query.WriteString(" PRIMARY KEY (id)")
 
 	if err := clickhouse.conn.Exec(ctx, query.String()); err != nil {
-		return wrap.Errorf(err, "ClickHouse table creation query failed for table '%s'", table)
+		return wrap.Errorf(
+			err,
+			"ClickHouse table creation query failed for table '%s'",
+			schema.TableName,
+		)
 	}
 
 	return nil
@@ -62,17 +62,16 @@ const BatchInsertSize = 10000
 
 func (clickhouse ClickHouseDB) UpdateTableData(
 	ctx context.Context,
-	table string,
 	schema db.TableSchema,
 	data db.DataSource,
 ) error {
-	if err := ValidateIdentifier(table); err != nil {
+	if err := ValidateIdentifier(schema.TableName); err != nil {
 		return wrap.Error(err, "invalid table name")
 	}
 
 	var query QueryBuilder
 	query.WriteString("INSERT INTO ")
-	query.WriteIdentifier(table)
+	query.WriteIdentifier(schema.TableName)
 	queryString := query.String()
 
 	fieldsPerRow := len(schema.Columns) + 1 // +1 for id field

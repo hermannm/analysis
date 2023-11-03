@@ -11,7 +11,8 @@ import (
 )
 
 type TableSchema struct {
-	Columns []Column `json:"columns"`
+	TableName string   `json:"tableName"`
+	Columns   []Column `json:"columns"`
 }
 
 type Column struct {
@@ -170,7 +171,19 @@ func convertField(field string, column Column) (convertedField any, err error) {
 	return nil, fmt.Errorf("unrecognized data type '%s' in column", column.DataType)
 }
 
-func (schema TableSchema) Validate() []error {
+func (schema TableSchema) Validate() error {
+	if schema.TableName == "" {
+		return errors.New("table name cannot be blank")
+	}
+
+	if errs := schema.ValidateColumns(); len(errs) != 0 {
+		return wrap.Errors("invalid schema columns", errs...)
+	}
+
+	return nil
+}
+
+func (schema TableSchema) ValidateColumns() []error {
 	var errs []error
 
 	for i, column := range schema.Columns {
@@ -203,6 +216,7 @@ const (
 )
 
 type StoredTableSchema struct {
+	TableName   string   `json:"table_name"`
 	ColumnNames []string `json:"column_names"`
 	DataTypes   []int8   `json:"column_data_types"`
 	Optionals   []bool   `json:"column_optionals"`
@@ -214,7 +228,10 @@ func (storedSchema StoredTableSchema) ToSchema() (TableSchema, error) {
 		return TableSchema{}, errors.New("stored table schema had inconsistent column counts")
 	}
 
-	schema := TableSchema{Columns: make([]Column, columnCount)}
+	schema := TableSchema{
+		TableName: storedSchema.TableName,
+		Columns:   make([]Column, columnCount),
+	}
 	for i := 0; i < columnCount; i++ {
 		schema.Columns[i] = Column{
 			Name:     storedSchema.ColumnNames[i],
@@ -222,8 +239,8 @@ func (storedSchema StoredTableSchema) ToSchema() (TableSchema, error) {
 			Optional: storedSchema.Optionals[i],
 		}
 	}
-	if errs := schema.Validate(); len(errs) != 0 {
-		return TableSchema{}, wrap.Errors("stored table schema was invalid", errs...)
+	if err := schema.Validate(); err != nil {
+		return TableSchema{}, wrap.Error(err, "stored table schema was invalid")
 	}
 
 	return schema, nil
@@ -233,6 +250,7 @@ func (schema TableSchema) ToStored() StoredTableSchema {
 	columnCount := len(schema.Columns)
 
 	storedSchema := StoredTableSchema{
+		TableName:   schema.TableName,
 		ColumnNames: make([]string, columnCount),
 		DataTypes:   make([]int8, columnCount),
 		Optionals:   make([]bool, columnCount),

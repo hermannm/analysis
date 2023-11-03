@@ -39,11 +39,10 @@ func (clickhouse ClickHouseDB) CreateStoredSchemasTable(ctx context.Context) err
 
 func (clickhouse ClickHouseDB) StoreTableSchema(
 	ctx context.Context,
-	table string,
 	schema db.TableSchema,
 ) error {
-	if errs := schema.Validate(); len(errs) != 0 {
-		return wrap.Errors("invalid schema", errs...)
+	if err := schema.Validate(); err != nil {
+		return wrap.Error(err, "invalid table schema")
 	}
 
 	var query QueryBuilder
@@ -58,7 +57,7 @@ func (clickhouse ClickHouseDB) StoreTableSchema(
 		ctx,
 		query.String(),
 		shouldWaitForResult,
-		table,
+		storedSchema.TableName,
 		storedSchema.ColumnNames,
 		storedSchema.DataTypes,
 		storedSchema.Optionals,
@@ -79,6 +78,8 @@ func (clickhouse ClickHouseDB) GetTableSchema(
 
 	var query QueryBuilder
 	query.WriteString("SELECT ")
+	query.WriteIdentifier(db.StoredSchemaName)
+	query.WriteString(", ")
 	query.WriteIdentifier(db.StoredSchemaColumnNames)
 	query.WriteString(", ")
 	query.WriteIdentifier(db.StoredSchemaColumnDataTypes)
@@ -97,6 +98,7 @@ func (clickhouse ClickHouseDB) GetTableSchema(
 
 	var storedSchema db.StoredTableSchema
 	if err := result.Scan(
+		&storedSchema.TableName,
 		&storedSchema.ColumnNames,
 		&storedSchema.DataTypes,
 		&storedSchema.Optionals,

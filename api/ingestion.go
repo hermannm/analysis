@@ -11,16 +11,9 @@ import (
 )
 
 // Expects:
-//   - query parameter 'table': name of table to create
 //   - multipart form field 'tableSchema': JSON-encoded db.TableSchema
 //   - multipart form field 'csvFile': CSV file to read data from
 func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Request) {
-	table := req.URL.Query().Get("table")
-	if table == "" {
-		sendClientError(res, nil, "missing 'table' query parameter in request")
-		return
-	}
-
 	schema, err := getTableSchemaFromRequest(req)
 	if err != nil {
 		sendClientError(res, err, "")
@@ -34,13 +27,13 @@ func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Req
 	}
 	defer csvFile.Close()
 
-	if err := api.db.CreateTable(req.Context(), table, schema); err != nil {
+	if err := api.db.CreateTable(req.Context(), schema); err != nil {
 		sendServerError(res, err, "failed to create table from uploaded CSV")
 		return
 	}
 
-	if err := api.db.StoreTableSchema(req.Context(), table, schema); err != nil {
-		_, dropErr := api.db.DropTable(req.Context(), table)
+	if err := api.db.StoreTableSchema(req.Context(), schema); err != nil {
+		_, dropErr := api.db.DropTable(req.Context(), schema.TableName)
 		if dropErr == nil {
 			sendServerError(res, err, "failed to store table schema")
 			return
@@ -60,23 +53,16 @@ func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Req
 		return
 	}
 
-	if err := api.db.UpdateTableData(req.Context(), table, schema, csvReader); err != nil {
+	if err := api.db.UpdateTableData(req.Context(), schema, csvReader); err != nil {
 		sendServerError(res, err, "failed to insert CSV data after creating table")
 		return
 	}
 }
 
 // Expects:
-//   - query parameter 'table': name of table to update
 //   - multipart form field 'tableSchema': JSON-encoded db.TableSchema
 //   - multipart form field 'csvFile': CSV file to read data from
 func (api AnalysisAPI) UpdateTableWithCSV(res http.ResponseWriter, req *http.Request) {
-	table := req.URL.Query().Get("table")
-	if table == "" {
-		sendClientError(res, nil, "missing query parameter 'table'")
-		return
-	}
-
 	schema, err := getTableSchemaFromRequest(req)
 	if err != nil {
 		sendClientError(res, err, "")
@@ -96,7 +82,7 @@ func (api AnalysisAPI) UpdateTableWithCSV(res http.ResponseWriter, req *http.Req
 		return
 	}
 
-	if err := api.db.UpdateTableData(req.Context(), table, schema, csvReader); err != nil {
+	if err := api.db.UpdateTableData(req.Context(), schema, csvReader); err != nil {
 		sendServerError(res, err, "failed to update table with uploaded CSV")
 		return
 	}
@@ -112,8 +98,8 @@ func getTableSchemaFromRequest(req *http.Request) (db.TableSchema, error) {
 	if err := json.Unmarshal([]byte(schemaInput), &schema); err != nil {
 		return db.TableSchema{}, wrap.Error(err, "failed to parse table schema from request")
 	}
-	if errs := schema.Validate(); len(errs) > 0 {
-		return db.TableSchema{}, wrap.Errors("invalid table schema", errs...)
+	if err := schema.Validate(); err != nil {
+		return db.TableSchema{}, wrap.Error(err, "invalid table schema")
 	}
 
 	return schema, nil

@@ -36,12 +36,13 @@ func (elastic ElasticsearchDB) CreateStoredSchemasTable(ctx context.Context) err
 
 func (elastic ElasticsearchDB) StoreTableSchema(
 	ctx context.Context,
-	table string,
 	schema db.TableSchema,
 ) error {
 	storedSchema := schema.ToStored()
 
-	_, err := elastic.client.Create(db.StoredSchemasTable, table).Document(storedSchema).Do(ctx)
+	_, err := elastic.client.Create(db.StoredSchemasTable, schema.TableName).
+		Document(storedSchema).
+		Do(ctx)
 	if err != nil {
 		return wrap.Error(err, "Elasticsearch schema document creation request failed")
 	}

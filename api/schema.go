@@ -33,7 +33,7 @@ const maxRowsToCheckForCSVSchemaDeduction = 100
 //   - multipart form field 'csvFile': CSV file to deduce types from
 //
 // Returns:
-//   - JSON-encoded db.TableSchema
+//   - JSON-encoded db.TableSchema (with blank table name)
 func (api AnalysisAPI) DeduceCSVTableSchema(res http.ResponseWriter, req *http.Request) {
 	csvFile, _, err := req.FormFile("csvFile")
 	if err != nil {

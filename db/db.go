@@ -9,20 +9,15 @@ type AnalysisDB interface {
 		table string,
 	) (AnalysisResult, error)
 
-	CreateTable(ctx context.Context, table string, schema TableSchema) error
+	CreateTable(ctx context.Context, schema TableSchema) error
 
-	UpdateTableData(
-		ctx context.Context,
-		table string,
-		schema TableSchema,
-		data DataSource,
-	) error
+	UpdateTableData(ctx context.Context, schema TableSchema, data DataSource) error
 
 	DropTable(ctx context.Context, table string) (alreadyDropped bool, err error)
 
 	CreateStoredSchemasTable(ctx context.Context) error
 
-	StoreTableSchema(ctx context.Context, table string, schema TableSchema) error
+	StoreTableSchema(ctx context.Context, schema TableSchema) error
 
 	GetTableSchema(ctx context.Context, table string) (TableSchema, error)
 

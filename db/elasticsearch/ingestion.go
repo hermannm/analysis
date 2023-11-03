@@ -11,18 +11,19 @@ import (
 	"hermannm.dev/wrap"
 )
 
-func (elastic ElasticsearchDB) CreateTable(
-	ctx context.Context,
-	table string,
-	schema db.TableSchema,
-) error {
+func (elastic ElasticsearchDB) CreateTable(ctx context.Context, schema db.TableSchema) error {
 	mappings, err := schemaToElasticMappings(schema)
 	if err != nil {
 		return wrap.Error(err, "failed to translate table schema to elastic mappings")
 	}
 
-	if _, err = elastic.client.Indices.Create(table).Mappings(mappings).Do(ctx); err != nil {
-		return wrap.Errorf(err, "Elasticsearch index creation request failed for table '%s'", table)
+	_, err = elastic.client.Indices.Create(schema.TableName).Mappings(mappings).Do(ctx)
+	if err != nil {
+		return wrap.Errorf(
+			err,
+			"Elasticsearch index creation request failed for table '%s'",
+			schema.TableName,
+		)
 	}
 
 	return nil
@@ -32,13 +33,12 @@ const BulkInsertSize = 1000
 
 func (elastic ElasticsearchDB) UpdateTableData(
 	ctx context.Context,
-	table string,
 	schema db.TableSchema,
 	data db.DataSource,
 ) error {
 	bulk, err := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
 		Client: elastic.untypedClient,
-		Index:  table,
+		Index:  schema.TableName,
 	})
 	if err != nil {
 		return wrap.Error(err, "failed to prepare bulk data insert")

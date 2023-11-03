@@ -34,7 +34,7 @@ func (reader *Reader) DeduceTableSchema(maxRowsToCheck int) (schema db.TableSche
 		}
 	}
 
-	if errs := schema.Validate(); len(errs) > 0 {
+	if errs := schema.ValidateColumns(); len(errs) > 0 {
 		return db.TableSchema{}, wrap.Errors(
 			"failed to deduce data types for all given CSV columns",
 			errs...,
