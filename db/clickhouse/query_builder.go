@@ -110,6 +110,10 @@ func (query *QueryBuilder) WriteSplit(split db.Split) error {
 }
 
 func ValidateIdentifier(identifier string) error {
+	if identifier == "" {
+		return errors.New("received blank identifier")
+	}
+
 	if strings.ContainsRune(identifier, '`') {
 		return fmt.Errorf("'%s' contains `, which is incompatible with database", identifier)
 	}
