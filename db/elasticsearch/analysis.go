@@ -2,6 +2,7 @@ package elasticsearch
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 
 	"github.com/elastic/go-elasticsearch/v8/typedapi/core/search"
@@ -20,9 +21,12 @@ func (elastic ElasticsearchDB) RunAnalysisQuery(
 		return db.AnalysisResult{}, wrap.Error(err, "failed to parse query")
 	}
 
-	response, err := request.Do(ctx)
+	response, err := executeAnalysisQueryRequest(ctx, request)
 	if err != nil {
-		return db.AnalysisResult{}, wrapElasticError(err, "Elasticsearch failed to execute query")
+		return db.AnalysisResult{}, wrapElasticError(
+			err,
+			"failed to execute query against Elasticsearch",
+		)
 	}
 
 	analysisResult, err := parseAnalysisQueryResponse(response, analysis)
@@ -158,8 +162,63 @@ func createValueAggregation(valueAggregation db.ValueAggregation) (types.Aggrega
 	}
 }
 
+type analysisQueryResponse struct {
+	Aggregations struct {
+		RowSplit struct {
+			Buckets []struct {
+				Key         any `json:"key"`
+				ColumnSplit struct {
+					Buckets []struct {
+						Key              any `json:"key"`
+						ValueAggregation struct {
+							Value any `json:"value"`
+						} `json:"value_aggregation"`
+					} `json:"buckets"`
+				} `json:"column_split"`
+			} `json:"buckets"`
+		} `json:"row_split"`
+	} `json:"aggregations"`
+}
+
+func executeAnalysisQueryRequest(
+	ctx context.Context,
+	request *search.Search,
+) (analysisQueryResponse, error) {
+	response, err := request.Perform(ctx)
+	if err != nil {
+		return analysisQueryResponse{}, wrap.Error(err, "failed to send query request")
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode > 299 {
+		elasticErr := types.NewElasticsearchError()
+		if err := json.NewDecoder(response.Body).Decode(elasticErr); err != nil {
+			return analysisQueryResponse{}, wrap.Error(
+				err,
+				"failed to decode error from Elasticsearch",
+			)
+		}
+
+		if elasticErr.Status == 0 {
+			elasticErr.Status = response.StatusCode
+		}
+
+		return analysisQueryResponse{}, elasticErr
+	}
+
+	var decodedResponse analysisQueryResponse
+	if err := json.NewDecoder(response.Body).Decode(&decodedResponse); err != nil {
+		return analysisQueryResponse{}, wrap.Error(
+			err,
+			"failed to decode response from Elasticsearch",
+		)
+	}
+
+	return decodedResponse, nil
+}
+
 func parseAnalysisQueryResponse(
-	response *search.Response,
+	response analysisQueryResponse,
 	analysis db.AnalysisQuery,
 ) (db.AnalysisResult, error) {
 	return db.AnalysisResult{}, errors.New("not implemented")
