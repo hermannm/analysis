@@ -21,7 +21,7 @@ func (clickhouse ClickHouseDB) RunAnalysisQuery(
 
 	rows, err := clickhouse.conn.Query(ctx, queryString)
 	if err != nil {
-		return db.AnalysisResult{}, wrap.Error(err, "ClickHouse failed to execute query")
+		return db.AnalysisResult{}, wrap.Error(err, "failed to execute query against ClickHouse")
 	}
 
 	analysisResult, err := parseAnalysisResultRows(rows, analysis)
