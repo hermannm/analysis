@@ -30,8 +30,6 @@ func (elastic ElasticsearchDB) CreateTable(ctx context.Context, schema db.TableS
 	return nil
 }
 
-const BulkInsertSize = 1000
-
 func (elastic ElasticsearchDB) UpdateTableData(
 	ctx context.Context,
 	schema db.TableSchema,
