@@ -1,8 +1,10 @@
 package elasticsearch
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
 	"hermannm.dev/wrap"
@@ -28,7 +30,9 @@ func formatElasticError(err error) error {
 	} else {
 		errMessage = fmt.Sprintf(
 			"%s (%s, status %d)",
-			*elasticErr.ErrorCause.Reason, elasticErr.ErrorCause.Type, elasticErr.Status,
+			*elasticErr.ErrorCause.Reason,
+			elasticErr.ErrorCause.Type,
+			elasticErr.Status,
 		)
 	}
 
@@ -46,4 +50,19 @@ func formatElasticError(err error) error {
 	} else {
 		return wrap.Errors(errMessage, rootCause...)
 	}
+}
+
+func extractElasticError(err error) error {
+	split := strings.SplitN(err.Error(), "]", 2)
+	if len(split) != 2 {
+		return err
+	}
+
+	rawError := split[1]
+	elasticErr := new(types.ElasticsearchError)
+	if marshalErr := json.Unmarshal([]byte(rawError), elasticErr); marshalErr != nil {
+		return err
+	}
+
+	return elasticErr
 }
