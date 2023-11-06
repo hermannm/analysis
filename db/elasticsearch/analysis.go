@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/elastic/go-elasticsearch/v8/typedapi/core/search"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
@@ -221,5 +223,76 @@ func parseAnalysisQueryResponse(
 	response analysisQueryResponse,
 	analysis db.AnalysisQuery,
 ) (db.AnalysisResult, error) {
-	return db.AnalysisResult{}, errors.New("not implemented")
+	analysisResult := db.NewAnalysisQueryResult(analysis)
+
+	for _, rowSplit := range response.Aggregations.RowSplit.Buckets {
+		for _, columnSplit := range rowSplit.ColumnSplit.Buckets {
+			resultHandle, err := analysisResult.NewResultHandle()
+			if err != nil {
+				return db.AnalysisResult{}, wrap.Error(err, "failed to initialize result handle")
+			}
+
+			if err := setResultValue(
+				resultHandle.RowValue,
+				rowSplit.Key,
+				analysisResult.RowsMeta.BaseColumnDataType,
+			); err != nil {
+				return db.AnalysisResult{}, wrap.Error(
+					err,
+					"failed to set result value for row split",
+				)
+			}
+
+			if err := setResultValue(
+				resultHandle.ColumnValue,
+				columnSplit.Key,
+				analysisResult.ColumnsMeta.BaseColumnDataType,
+			); err != nil {
+				return db.AnalysisResult{}, wrap.Error(
+					err,
+					"failed to set result value for column split",
+				)
+			}
+
+			if err := setResultValue(
+				resultHandle.ValueAggregation,
+				columnSplit.ValueAggregation.Value,
+				analysisResult.ValueAggregationDataType,
+			); err != nil {
+				return db.AnalysisResult{}, wrap.Error(
+					err,
+					"failed to set result value for value aggregation",
+				)
+			}
+
+			if err := analysisResult.ParseResultHandle(resultHandle); err != nil {
+				return db.AnalysisResult{}, err
+			}
+		}
+	}
+
+	return analysisResult, nil
+}
+
+func setResultValue(dest db.DBValue, source any, dataType db.DataType) error {
+	// Deserializing from JSON to any makes all numeric types floating-point, so we have to convert
+	// them back to integers here before setting the value
+	switch dataType {
+	case db.DataTypeInt:
+		if float, isFloat := source.(float64); isFloat {
+			source = int64(float)
+		}
+	case db.DataTypeTimestamp:
+		if float, isFloat := source.(float64); isFloat {
+			// Elasticsearch stores dates as milliseconds since the Unix epoch:
+			// https://www.elastic.co/guide/en/elasticsearch/reference/8.10/date.html
+			source = time.UnixMilli(int64(float))
+		}
+	}
+
+	if ok := dest.Set(source); !ok {
+		return fmt.Errorf("failed to assign '%v' to type %v", source, dataType)
+	}
+
+	return nil
 }
