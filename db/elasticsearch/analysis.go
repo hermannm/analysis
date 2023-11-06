@@ -49,14 +49,14 @@ func (elastic ElasticsearchDB) buildAnalysisQueryRequest(
 	analysis db.AnalysisQuery,
 	table string,
 ) (*search.Search, error) {
-	rowSplit, err := createSplit(analysis.RowSplit)
-	if err != nil {
-		return nil, wrap.Error(err, "failed to create row split")
-	}
-
 	columnSplit, err := createSplit(analysis.ColumnSplit)
 	if err != nil {
 		return nil, wrap.Error(err, "failed to create column split")
+	}
+
+	rowSplit, err := createSplit(analysis.RowSplit)
+	if err != nil {
+		return nil, wrap.Error(err, "failed to create row split")
 	}
 
 	valueAggregation, err := createValueAggregation(analysis.ValueAggregation)
@@ -64,14 +64,14 @@ func (elastic ElasticsearchDB) buildAnalysisQueryRequest(
 		return nil, wrap.Error(err, "failed to create value aggregation")
 	}
 
-	columnSplit.Aggregations = map[string]types.Aggregations{
+	rowSplit.Aggregations = map[string]types.Aggregations{
 		valueAggregationName: valueAggregation,
 	}
-	rowSplit.Aggregations = map[string]types.Aggregations{
-		columnSplitName: columnSplit,
+	columnSplit.Aggregations = map[string]types.Aggregations{
+		rowSplitName: rowSplit,
 	}
 	aggregations := map[string]types.Aggregations{
-		rowSplitName: rowSplit,
+		columnSplitName: columnSplit,
 	}
 
 	// Size 0, since we only want aggregation results
@@ -166,19 +166,19 @@ func createValueAggregation(valueAggregation db.ValueAggregation) (types.Aggrega
 
 type analysisQueryResponse struct {
 	Aggregations struct {
-		RowSplit struct {
+		ColumnSplit struct {
 			Buckets []struct {
-				Key         any `json:"key"`
-				ColumnSplit struct {
+				Key      any `json:"key"`
+				RowSplit struct {
 					Buckets []struct {
 						Key              any `json:"key"`
 						ValueAggregation struct {
 							Value any `json:"value"`
 						} `json:"value_aggregation"`
 					} `json:"buckets"`
-				} `json:"column_split"`
+				} `json:"row_split"`
 			} `json:"buckets"`
-		} `json:"row_split"`
+		} `json:"column_split"`
 	} `json:"aggregations"`
 }
 
@@ -225,22 +225,11 @@ func parseAnalysisQueryResponse(
 ) (db.AnalysisResult, error) {
 	analysisResult := db.NewAnalysisQueryResult(analysis)
 
-	for _, rowSplit := range response.Aggregations.RowSplit.Buckets {
-		for _, columnSplit := range rowSplit.ColumnSplit.Buckets {
+	for _, columnSplit := range response.Aggregations.ColumnSplit.Buckets {
+		for _, rowSplit := range columnSplit.RowSplit.Buckets {
 			resultHandle, err := analysisResult.NewResultHandle()
 			if err != nil {
 				return db.AnalysisResult{}, wrap.Error(err, "failed to initialize result handle")
-			}
-
-			if err := setResultValue(
-				resultHandle.RowValue,
-				rowSplit.Key,
-				analysisResult.RowsMeta.BaseColumnDataType,
-			); err != nil {
-				return db.AnalysisResult{}, wrap.Error(
-					err,
-					"failed to set result value for row split",
-				)
 			}
 
 			if err := setResultValue(
@@ -255,8 +244,19 @@ func parseAnalysisQueryResponse(
 			}
 
 			if err := setResultValue(
+				resultHandle.RowValue,
+				rowSplit.Key,
+				analysisResult.RowsMeta.BaseColumnDataType,
+			); err != nil {
+				return db.AnalysisResult{}, wrap.Error(
+					err,
+					"failed to set result value for row split",
+				)
+			}
+
+			if err := setResultValue(
 				resultHandle.ValueAggregation,
-				columnSplit.ValueAggregation.Value,
+				rowSplit.ValueAggregation.Value,
 				analysisResult.ValueAggregationDataType,
 			); err != nil {
 				return db.AnalysisResult{}, wrap.Error(
