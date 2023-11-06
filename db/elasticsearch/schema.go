@@ -28,7 +28,7 @@ func (elastic ElasticsearchDB) CreateStoredSchemasTable(ctx context.Context) err
 			return nil
 		}
 
-		return wrap.Error(err, "Elasticsearch index creation request failed")
+		return wrapElasticError(err, "Elasticsearch index creation request failed")
 	}
 
 	return nil
@@ -44,7 +44,7 @@ func (elastic ElasticsearchDB) StoreTableSchema(
 		Document(storedSchema).
 		Do(ctx)
 	if err != nil {
-		return wrap.Error(err, "Elasticsearch schema document creation request failed")
+		return wrapElasticError(err, "Elasticsearch schema document creation request failed")
 	}
 
 	return nil
@@ -56,7 +56,10 @@ func (elastic ElasticsearchDB) GetTableSchema(
 ) (db.TableSchema, error) {
 	schemaIndex, err := elastic.client.Get(db.StoredSchemasTable, table).Do(ctx)
 	if err != nil {
-		return db.TableSchema{}, wrap.Error(err, "Elasticsearch schema document get request failed")
+		return db.TableSchema{}, wrapElasticError(
+			err,
+			"Elasticsearch schema document get request failed",
+		)
 	}
 
 	var storedSchema db.StoredTableSchema

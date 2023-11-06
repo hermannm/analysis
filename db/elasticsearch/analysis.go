@@ -22,7 +22,7 @@ func (elastic ElasticsearchDB) RunAnalysisQuery(
 
 	response, err := request.Do(ctx)
 	if err != nil {
-		return db.AnalysisResult{}, wrap.Error(err, "Elasticsearch failed to execute query")
+		return db.AnalysisResult{}, wrapElasticError(err, "Elasticsearch failed to execute query")
 	}
 
 	analysisResult, err := parseAnalysisQueryResponse(response, analysis)

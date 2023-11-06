@@ -19,7 +19,7 @@ func (elastic ElasticsearchDB) CreateTable(ctx context.Context, schema db.TableS
 
 	_, err = elastic.client.Indices.Create(schema.TableName).Mappings(mappings).Do(ctx)
 	if err != nil {
-		return wrap.Errorf(
+		return wrapElasticErrorf(
 			err,
 			"Elasticsearch index creation request failed for table '%s'",
 			schema.TableName,

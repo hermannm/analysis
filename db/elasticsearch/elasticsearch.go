@@ -47,7 +47,7 @@ func (elastic ElasticsearchDB) DropTable(
 			return true, nil
 		}
 
-		return false, wrap.Error(err, "Elasticsearch index deletion request failed")
+		return false, wrapElasticError(err, "Elasticsearch index deletion request failed")
 	}
 
 	return false, nil
