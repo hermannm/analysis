@@ -31,6 +31,23 @@ func schemaToElasticMappings(schema db.TableSchema) (*types.TypeMapping, error) 
 	return mappings, nil
 }
 
+func dataTypeToElasticProperty(dataType db.DataType) (types.Property, error) {
+	switch dataType {
+	case db.DataTypeText:
+		return types.NewKeywordProperty(), nil
+	case db.DataTypeInt:
+		return types.NewIntegerNumberProperty(), nil
+	case db.DataTypeFloat:
+		return types.NewFloatNumberProperty(), nil
+	case db.DataTypeTimestamp:
+		return types.NewDateProperty(), nil
+	case db.DataTypeUUID:
+		return types.NewKeywordProperty(), nil
+	default:
+		return nil, fmt.Errorf("unrecognized data type '%v'", dataType)
+	}
+}
+
 func sortOrderToElastic(sortOrder db.SortOrder) (elasticSortOrder sortorder.SortOrder, ok bool) {
 	switch sortOrder {
 	case db.SortOrderAscending:
@@ -69,22 +86,5 @@ func dateIntervalToElastic(
 		return calendarinterval.Day, true
 	default:
 		return calendarinterval.CalendarInterval{}, false
-	}
-}
-
-func dataTypeToElasticProperty(dataType db.DataType) (types.Property, error) {
-	switch dataType {
-	case db.DataTypeText:
-		return types.NewTextProperty(), nil
-	case db.DataTypeInt:
-		return types.NewIntegerNumberProperty(), nil
-	case db.DataTypeFloat:
-		return types.NewFloatNumberProperty(), nil
-	case db.DataTypeTimestamp:
-		return types.NewDateProperty(), nil
-	case db.DataTypeUUID:
-		return types.NewTextProperty(), nil
-	default:
-		return nil, fmt.Errorf("unrecognized data type '%v'", dataType)
 	}
 }
