@@ -4,6 +4,24 @@ An API server that lets users upload CSV data to perform analytical queries on i
 ClickHouse or Elasticsearch as the backing database. Built as part of hermannm's master's thesis in
 Computer Science.
 
+## Project structure
+
+- `api` defines the API endpoints exposed by the service
+- `db` defines the `AnalysisDB` interface, allowing us to toggle between database implementations
+  while sharing common functionality
+  - `clickhouse` implements `AnalysisDB` for [ClickHouse](https://clickhouse.com/docs/en/intro)
+  - `elasticsearch` implements `AnalysisDB` for
+    [Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/8.10/elasticsearch-intro.html)
+- `csv` implements data type and field delimiter deduction for CSV files
+- `config` implements configuration parsing from environment variables
+
+Certain files in the `api`, `clickhouse` and `elasticsearch` packages follow a common pattern:
+
+- `analysis.go` handles execution of analytical queries
+- `ingestion.go` handles data ingestion, i.e. creating new database tables and inserting data into
+  them
+- `schema.go` handles storing and fetching of table schemas
+
 ## Local setup
 
 1. Create a `.env` file by copying `.env.example`:
