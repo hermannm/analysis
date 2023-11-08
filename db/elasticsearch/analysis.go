@@ -81,6 +81,10 @@ func (elastic ElasticsearchDB) buildAnalysisQueryRequest(
 
 func createSplit(split db.Split) (types.Aggregations, error) {
 	field := split.BaseColumnName
+	sortOrder, err := sortOrderToElasticBucket(split.SortOrder)
+	if err != nil {
+		return types.Aggregations{}, err
+	}
 
 	switch split.BaseColumnDataType {
 	case db.DataTypeInt, db.DataTypeFloat:
@@ -92,11 +96,6 @@ func createSplit(split db.Split) (types.Aggregations, error) {
 				interval = types.Float64(split.IntegerInterval)
 			} else {
 				interval = types.Float64(split.FloatInterval)
-			}
-
-			sortOrder, err := sortOrderToElasticBucket(split.SortOrder)
-			if err != nil {
-				return types.Aggregations{}, err
 			}
 
 			// Histogram is a bucket aggregation for number ranges
@@ -118,11 +117,6 @@ func createSplit(split db.Split) (types.Aggregations, error) {
 				return types.Aggregations{}, errors.New("invalid date interval")
 			}
 
-			sortOrder, err := sortOrderToElasticBucket(split.SortOrder)
-			if err != nil {
-				return types.Aggregations{}, err
-			}
-
 			// DateHistogram is a bucket aggregation for date ranges
 			// https://www.elastic.co/guide/en/elasticsearch/reference/8.10/search-aggregations-bucket-datehistogram-aggregation.html
 			return types.Aggregations{DateHistogram: &types.DateHistogramAggregation{
@@ -136,9 +130,10 @@ func createSplit(split db.Split) (types.Aggregations, error) {
 	// If we get here, no interval was specified, so we want to use the 'Terms' bucket aggregation
 	// to group by unique values
 	// https://www.elastic.co/guide/en/elasticsearch/reference/8.10/search-aggregations-bucket-terms-aggregation.html
-	terms := types.NewTermsAggregation()
-	terms.Field = &field
-	return types.Aggregations{Terms: terms}, nil
+	return types.Aggregations{Terms: &types.TermsAggregation{
+		Field: &field,
+		Order: sortOrder,
+	}}, nil
 }
 
 func createValueAggregation(valueAggregation db.ValueAggregation) (types.Aggregations, error) {
