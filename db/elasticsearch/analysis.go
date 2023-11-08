@@ -274,24 +274,24 @@ func parseAnalysisQueryResponse(
 	return analysisResult, nil
 }
 
-func setResultValue(dest db.DBValue, source any, dataType db.DataType) error {
+func setResultValue(target db.TypedValue, value any, dataType db.DataType) error {
 	// Deserializing from JSON to any makes all numeric types floating-point, so we have to convert
 	// them back to integers here before setting the value
 	switch dataType {
 	case db.DataTypeInt:
-		if float, isFloat := source.(float64); isFloat {
-			source = int64(float)
+		if float, isFloat := value.(float64); isFloat {
+			value = int64(float)
 		}
 	case db.DataTypeTimestamp:
-		if float, isFloat := source.(float64); isFloat {
+		if float, isFloat := value.(float64); isFloat {
 			// Elasticsearch stores dates as milliseconds since the Unix epoch:
 			// https://www.elastic.co/guide/en/elasticsearch/reference/8.10/date.html
-			source = time.UnixMilli(int64(float))
+			value = time.UnixMilli(int64(float))
 		}
 	}
 
-	if ok := dest.Set(source); !ok {
-		return fmt.Errorf("failed to assign '%v' to type %v", source, dataType)
+	if ok := target.Set(value); !ok {
+		return fmt.Errorf("failed to assign '%v' to type %v", value, dataType)
 	}
 
 	return nil

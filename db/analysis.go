@@ -43,18 +43,18 @@ type AnalysisResult struct {
 }
 
 type RowResult struct {
-	FieldValue       DBValue     `json:"fieldValue"`
-	AggregatedValues DBValueList `json:"aggregatedValues"`
+	FieldValue       TypedValue     `json:"fieldValue"`
+	AggregatedValues TypedValueList `json:"aggregatedValues"`
 }
 
 type ColumnResult struct {
-	FieldValue DBValue `json:"fieldValue"`
+	FieldValue TypedValue `json:"fieldValue"`
 }
 
 type ResultHandle struct {
-	ColumnValue      DBValue
-	RowValue         DBValue
-	ValueAggregation DBValue
+	ColumnValue      TypedValue
+	RowValue         TypedValue
+	ValueAggregation TypedValue
 }
 
 func NewAnalysisQueryResult(analysis AnalysisQuery) AnalysisResult {
@@ -68,17 +68,17 @@ func NewAnalysisQueryResult(analysis AnalysisQuery) AnalysisResult {
 }
 
 func (analysisResult *AnalysisResult) NewResultHandle() (handle ResultHandle, err error) {
-	handle.ColumnValue, err = NewDBValue(analysisResult.ColumnsMeta.BaseColumnDataType)
+	handle.ColumnValue, err = NewTypedValue(analysisResult.ColumnsMeta.BaseColumnDataType)
 	if err != nil {
 		return ResultHandle{}, wrap.Error(err, "failed to initialize column value")
 	}
 
-	handle.RowValue, err = NewDBValue(analysisResult.RowsMeta.BaseColumnDataType)
+	handle.RowValue, err = NewTypedValue(analysisResult.RowsMeta.BaseColumnDataType)
 	if err != nil {
 		return ResultHandle{}, wrap.Error(err, "failed to initialize row value")
 	}
 
-	handle.ValueAggregation, err = NewDBValue(analysisResult.ValueAggregationDataType)
+	handle.ValueAggregation, err = NewTypedValue(analysisResult.ValueAggregationDataType)
 	if err != nil {
 		return ResultHandle{}, wrap.Error(err, "failed to initialize value aggregation")
 	}
@@ -117,7 +117,7 @@ func (analysisResult *AnalysisResult) GetOrCreateRowResult(
 		}
 	}
 
-	baseColumnValue, err := NewDBValue(analysisResult.RowsMeta.BaseColumnDataType)
+	baseColumnValue, err := NewTypedValue(analysisResult.RowsMeta.BaseColumnDataType)
 	if err != nil {
 		return RowResult{}, 0, wrap.Error(err, "failed to initialize row field value")
 	}
@@ -129,7 +129,7 @@ func (analysisResult *AnalysisResult) GetOrCreateRowResult(
 		)
 	}
 
-	aggregatedValues, err := NewDBValueList(
+	aggregatedValues, err := NewTypedValueList(
 		analysisResult.ValueAggregationDataType,
 		analysisResult.ColumnsMeta.Limit,
 	)
@@ -153,7 +153,7 @@ func (analysisResult *AnalysisResult) InitializeColumnResult(columnValue any) er
 		}
 	}
 
-	fieldValue, err := NewDBValue(analysisResult.ColumnsMeta.BaseColumnDataType)
+	fieldValue, err := NewTypedValue(analysisResult.ColumnsMeta.BaseColumnDataType)
 	if err != nil {
 		return wrap.Error(err, "failed to initialize column field value")
 	}
