@@ -12,9 +12,7 @@ import (
 func sendError(res http.ResponseWriter, err error, message string, statusCode int) {
 	if err == nil {
 		err = errors.New(message)
-	}
-
-	if message != "" {
+	} else if message != "" {
 		err = wrap.Error(err, message)
 	}
 
