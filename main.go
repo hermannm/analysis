@@ -24,13 +24,13 @@ func main() {
 	log.Info("loading environment variables...")
 	conf, err := config.ReadFromEnv()
 	if err != nil {
-		log.Error(err, "failed to read config from env")
+		log.ErrorCause(err, "failed to read config from env")
 		os.Exit(1)
 	}
 
 	db, err := initializeDatabase(conf)
 	if err != nil {
-		log.Error(err, "failed to initialize database")
+		log.ErrorCause(err, "failed to initialize database")
 		os.Exit(1)
 	}
 
@@ -38,7 +38,7 @@ func main() {
 
 	log.Infof("listening on port %s...", conf.API.Port)
 	if err := api.ListenAndServe(); err != nil {
-		log.Error(err, "server stopped")
+		log.ErrorCause(err, "server stopped")
 		os.Exit(1)
 	}
 }
@@ -77,7 +77,7 @@ func dropTableAndSchema(database db.AnalysisDB, table string) {
 
 	alreadyDropped, err := database.DropTable(ctx, table)
 	if err != nil {
-		log.WarnErrorf(
+		log.ErrorWarningf(
 			err,
 			"failed to drop table '%s' (from DEBUG_DROP_TABLE_ON_STARTUP in env)",
 			table,
@@ -89,7 +89,7 @@ func dropTableAndSchema(database db.AnalysisDB, table string) {
 		log.Infof("dropped table '%s' (from DEBUG_DROP_TABLE_ON_STARTUP in env)", table)
 
 		if err := database.DeleteTableSchema(ctx, table); err != nil {
-			log.WarnErrorf(err, "failed to delete schema for dropped table '%s'", table)
+			log.ErrorWarningf(err, "failed to delete schema for dropped table '%s'", table)
 		}
 	}
 }

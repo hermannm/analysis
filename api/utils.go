@@ -16,7 +16,7 @@ func sendError(res http.ResponseWriter, err error, message string, statusCode in
 		err = wrap.Error(err, message)
 	}
 
-	log.Error(err, "")
+	log.Error(err)
 	http.Error(res, err.Error(), statusCode)
 }
 
