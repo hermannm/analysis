@@ -18,8 +18,8 @@ import (
 )
 
 func main() {
-	logger := slog.New(devlog.NewHandler(os.Stdout, &devlog.Options{Level: slog.LevelDebug}))
-	slog.SetDefault(logger)
+	logHandler := devlog.NewHandler(os.Stdout, &devlog.Options{Level: slog.LevelDebug})
+	slog.SetDefault(slog.New(logHandler))
 
 	log.Info("loading environment variables...")
 	conf, err := config.ReadFromEnv()
