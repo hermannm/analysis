@@ -10,7 +10,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	hermannm.dev/devlog v0.3.2
 	hermannm.dev/enumnames v0.1.0
-	hermannm.dev/wrap v0.3.0
+	hermannm.dev/wrap v0.3.1
 )
 
 require (
