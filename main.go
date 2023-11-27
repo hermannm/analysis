@@ -21,7 +21,6 @@ func main() {
 	logHandler := devlog.NewHandler(os.Stdout, &devlog.Options{Level: slog.LevelDebug})
 	slog.SetDefault(slog.New(logHandler))
 
-	log.Info("loading environment variables...")
 	conf, err := config.ReadFromEnv()
 	if err != nil {
 		log.ErrorCause(err, "failed to read config from env")
@@ -36,7 +35,12 @@ func main() {
 
 	api := api.NewAnalysisAPI(db, http.DefaultServeMux, conf)
 
-	log.Infof("listening on port %s...", conf.API.Port)
+	log.Info(
+		"server started",
+		slog.String("db", string(conf.DB)),
+		slog.String("environment", string(conf.Environment)),
+		slog.String("port", conf.API.Port),
+	)
 	if err := api.ListenAndServe(); err != nil {
 		log.ErrorCause(err, "server stopped")
 		os.Exit(1)
@@ -49,10 +53,8 @@ func initializeDatabase(conf config.Config) (db.AnalysisDB, error) {
 
 	switch conf.DB {
 	case config.DBClickHouse:
-		log.Info("connecting to ClickHouse...")
 		db, err = clickhouse.NewClickHouseDB(conf)
 	case config.DBElasticsearch:
-		log.Info("connecting to Elasticsearch...")
 		db, err = elasticsearch.NewElasticsearchDB(conf)
 	default:
 		err = fmt.Errorf("unrecognized database '%s' from config", conf.DB)
@@ -61,7 +63,7 @@ func initializeDatabase(conf config.Config) (db.AnalysisDB, error) {
 		return nil, err
 	}
 
-	if conf.DropTableOnStartup != "" && !conf.IsProduction {
+	if conf.DropTableOnStartup != "" && conf.Environment != config.Prod {
 		dropTableAndSchema(db, conf.DropTableOnStartup)
 	}
 
