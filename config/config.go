@@ -15,7 +15,7 @@ type Config struct {
 }
 
 type BaseConfig struct {
-	IsProduction       bool `env:"PRODUCTION"`
+	Environment        Environment `env:"ENVIRONMENT"`
 	API                API
 	DB                 SupportedDB `env:"DATABASE"`
 	DropTableOnStartup string      `env:"DEBUG_DROP_TABLE_ON_STARTUP" envDefault:""`
@@ -43,6 +43,13 @@ type SupportedDB string
 const (
 	DBClickHouse    SupportedDB = "clickhouse"
 	DBElasticsearch SupportedDB = "elasticsearch"
+)
+
+type Environment string
+
+const (
+	Prod Environment = "prod"
+	Dev  Environment = "dev"
 )
 
 func ReadFromEnv() (Config, error) {
@@ -73,4 +80,16 @@ func ReadFromEnv() (Config, error) {
 	}
 
 	return config, nil
+}
+
+// Implements [encoding.TextUnmarshaler], to ensure valid Environment values.
+func (environment *Environment) UnmarshalText(text []byte) error {
+	value := Environment(text)
+	switch value {
+	case Prod, Dev:
+		*environment = value
+		return nil
+	default:
+		return fmt.Errorf("invalid ENVIRONMENT value '%s', must be '%s' or '%s'", value, Prod, Dev)
+	}
 }
