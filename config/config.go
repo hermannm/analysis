@@ -48,8 +48,8 @@ const (
 type Environment string
 
 const (
-	Prod Environment = "prod"
-	Dev  Environment = "dev"
+	Production  Environment = "production"
+	Development Environment = "development"
 )
 
 func ReadFromEnv() (Config, error) {
@@ -86,10 +86,15 @@ func ReadFromEnv() (Config, error) {
 func (environment *Environment) UnmarshalText(text []byte) error {
 	value := Environment(text)
 	switch value {
-	case Prod, Dev:
+	case Production, Development:
 		*environment = value
 		return nil
 	default:
-		return fmt.Errorf("invalid ENVIRONMENT value '%s', must be '%s' or '%s'", value, Prod, Dev)
+		return fmt.Errorf(
+			"invalid ENVIRONMENT value '%s', must be '%s' or '%s'",
+			value,
+			Production,
+			Development,
+		)
 	}
 }

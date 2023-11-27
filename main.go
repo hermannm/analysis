@@ -63,7 +63,7 @@ func initializeDatabase(conf config.Config) (db.AnalysisDB, error) {
 		return nil, err
 	}
 
-	if conf.DropTableOnStartup != "" && conf.Environment != config.Prod {
+	if conf.DropTableOnStartup != "" && conf.Environment != config.Production {
 		dropTableAndSchema(db, conf.DropTableOnStartup)
 	}
 
