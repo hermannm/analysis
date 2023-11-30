@@ -123,15 +123,15 @@ func (elastic ElasticsearchDB) buildAnalysisQueryRequest(
 }
 
 func createSplit(split db.Split) (types.Aggregations, error) {
-	field := split.BaseColumnName
+	field := split.FieldName
 	/* sortOrder, err := sortOrderToElasticBucket(split.SortOrder)
 	if err != nil {
 		return types.Aggregations{}, err
 	} */
 
-	switch split.BaseColumnDataType {
+	switch split.DataType {
 	case db.DataTypeInt, db.DataTypeFloat:
-		isInt := split.BaseColumnDataType == db.DataTypeInt
+		isInt := split.DataType == db.DataTypeInt
 
 		if (isInt && split.IntegerInterval != 0) || (!isInt && split.FloatInterval != 0) {
 			var interval types.Float64
@@ -184,11 +184,11 @@ func createSplit(split db.Split) (types.Aggregations, error) {
 }
 
 func createAnalysisAggregation(aggregation db.Aggregation) (types.Aggregations, error) {
-	if err := aggregation.BaseColumnDataType.IsValidForAggregation(); err != nil {
+	if err := aggregation.DataType.IsValidForAggregation(); err != nil {
 		return types.Aggregations{}, err
 	}
 
-	field := aggregation.BaseColumnName
+	field := aggregation.FieldName
 
 	switch aggregation.Kind {
 	case db.AggregationSum:
@@ -250,11 +250,11 @@ func parseAnalysisQueryResponse(
 	analysisResult := db.NewAnalysisQueryResult(analysis)
 
 	for _, rowSplit := range response.Aggregations.RowSplit.Buckets {
-		aggregationTotal, ok := rowSplit.AggregationTotal[analysis.Aggregation.BaseColumnName]
+		aggregationTotal, ok := rowSplit.AggregationTotal[analysis.Aggregation.FieldName]
 		if !ok {
 			return db.AnalysisResult{}, fmt.Errorf(
 				"expected aggregation total to have field name '%s' as key, but got %v",
-				analysis.Aggregation.BaseColumnName,
+				analysis.Aggregation.FieldName,
 				rowSplit.AggregationTotal,
 			)
 		}
@@ -268,7 +268,7 @@ func parseAnalysisQueryResponse(
 			if err := setResultValue(
 				resultHandle.Column,
 				columnSplit.Key,
-				analysisResult.ColumnsMeta.BaseColumnDataType,
+				analysisResult.ColumnsMeta.DataType,
 			); err != nil {
 				return db.AnalysisResult{}, wrap.Error(
 					err,
@@ -279,7 +279,7 @@ func parseAnalysisQueryResponse(
 			if err := setResultValue(
 				resultHandle.Row,
 				rowSplit.Key,
-				analysisResult.RowsMeta.BaseColumnDataType,
+				analysisResult.RowsMeta.DataType,
 			); err != nil {
 				return db.AnalysisResult{}, wrap.Error(
 					err,
@@ -298,11 +298,11 @@ func parseAnalysisQueryResponse(
 				)
 			}
 
-			aggregatedValue, ok := columnSplit.Aggregation[analysis.Aggregation.BaseColumnName]
+			aggregatedValue, ok := columnSplit.Aggregation[analysis.Aggregation.FieldName]
 			if !ok {
 				return db.AnalysisResult{}, fmt.Errorf(
 					"expected aggregation result to have field name '%s' as key, but got %v",
-					analysis.Aggregation.BaseColumnName,
+					analysis.Aggregation.FieldName,
 					columnSplit.Aggregation,
 				)
 			}

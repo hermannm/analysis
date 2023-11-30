@@ -43,9 +43,9 @@ func buildAnalysisQueryString(analysis db.AnalysisQuery, table string) (string, 
 
 	if err := ValidateIdentifiers(
 		table,
-		analysis.ColumnSplit.BaseColumnName,
-		analysis.RowSplit.BaseColumnName,
-		analysis.Aggregation.BaseColumnName,
+		analysis.ColumnSplit.FieldName,
+		analysis.RowSplit.FieldName,
+		analysis.Aggregation.FieldName,
 	); err != nil {
 		return "", wrap.Error(err, "invalid identifier in query")
 	}
@@ -73,11 +73,11 @@ func buildAnalysisQueryString(analysis db.AnalysisQuery, table string) (string, 
 
 	// WHERE clause to get the top K rows by totals
 	query.WriteString(" WHERE row_split IN (SELECT ")
-	query.WriteIdentifier(analysis.RowSplit.BaseColumnName)
+	query.WriteIdentifier(analysis.RowSplit.FieldName)
 	query.WriteString(" FROM ")
 	query.WriteIdentifier(table)
 	query.WriteString(" GROUP BY ")
-	query.WriteIdentifier(analysis.RowSplit.BaseColumnName)
+	query.WriteIdentifier(analysis.RowSplit.FieldName)
 	query.WriteString(" ORDER BY ")
 	if err := query.WriteAggregation(analysis.Aggregation); err != nil {
 		return "", err

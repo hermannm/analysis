@@ -29,7 +29,7 @@ func (query *QueryBuilder) WriteIdentifier(identifier string) {
 }
 
 func (query *QueryBuilder) WriteAggregation(aggregation db.Aggregation) error {
-	if err := aggregation.BaseColumnDataType.IsValidForAggregation(); err != nil {
+	if err := aggregation.DataType.IsValidForAggregation(); err != nil {
 		return err
 	}
 
@@ -40,18 +40,18 @@ func (query *QueryBuilder) WriteAggregation(aggregation db.Aggregation) error {
 	query.WriteString(kind)
 
 	query.WriteByte('(')
-	query.WriteIdentifier(aggregation.BaseColumnName)
+	query.WriteIdentifier(aggregation.FieldName)
 	query.WriteByte(')')
 	return nil
 }
 
 func (query *QueryBuilder) WriteSplit(split db.Split) error {
-	switch split.BaseColumnDataType {
+	switch split.DataType {
 	case db.DataTypeInt:
 		if split.IntegerInterval != 0 {
 			// https://clickhouse.com/docs/en/sql-reference/functions/rounding-functions#floorx-n
 			query.WriteString("(floor(")
-			query.WriteIdentifier(split.BaseColumnName)
+			query.WriteIdentifier(split.FieldName)
 			query.WriteString(" / ")
 			query.WriteInt(split.IntegerInterval)
 			query.WriteString(") * ")
@@ -63,7 +63,7 @@ func (query *QueryBuilder) WriteSplit(split db.Split) error {
 		if split.FloatInterval != 0 {
 			// https://clickhouse.com/docs/en/sql-reference/functions/rounding-functions#floorx-n
 			query.WriteString("(floor(")
-			query.WriteIdentifier(split.BaseColumnName)
+			query.WriteIdentifier(split.FieldName)
 			query.WriteString(" / ")
 			query.WriteFloat(split.FloatInterval)
 			query.WriteString(") * ")
@@ -91,7 +91,7 @@ func (query *QueryBuilder) WriteSplit(split db.Split) error {
 				return fmt.Errorf("unrecognized date interval type '%v'", dateInterval)
 			}
 
-			query.WriteIdentifier(split.BaseColumnName)
+			query.WriteIdentifier(split.FieldName)
 
 			if dateInterval == db.DateIntervalWeek {
 				// Setting mode so that week starts on Mondays
@@ -105,7 +105,7 @@ func (query *QueryBuilder) WriteSplit(split db.Split) error {
 	}
 
 	// If we get here, no interval was specified
-	query.WriteIdentifier(split.BaseColumnName)
+	query.WriteIdentifier(split.FieldName)
 	return nil
 }
 

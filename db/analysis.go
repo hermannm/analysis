@@ -14,21 +14,21 @@ type AnalysisQuery struct {
 }
 
 type Aggregation struct {
-	BaseColumnName     string          `json:"baseColumnName"`
-	BaseColumnDataType DataType        `json:"baseColumnDataType"`
-	Kind               AggregationKind `json:"kind"`
+	Kind      AggregationKind `json:"kind"`
+	FieldName string          `json:"fieldName"`
+	DataType  DataType        `json:"dataType"`
 }
 
 type Split struct {
-	BaseColumnName     string    `json:"baseColumnName"`
-	BaseColumnDataType DataType  `json:"baseColumnDataType"`
-	Limit              int       `json:"limit"`
-	SortOrder          SortOrder `json:"sortOrder"`
-	// May only be present if BaseColumnDataType is INTEGER.
+	FieldName string    `json:"fieldName"`
+	DataType  DataType  `json:"dataType"`
+	Limit     int       `json:"limit"`
+	SortOrder SortOrder `json:"sortOrder"`
+	// May only be present if DataType is INTEGER.
 	IntegerInterval int `json:"integerInterval,omitempty"`
-	// May only be present if BaseColumnDataType is FLOAT.
+	// May only be present if DataType is FLOAT.
 	FloatInterval float64 `json:"floatInterval,omitempty"`
-	// May only be present if BaseColumnDataType is TIMESTAMP.
+	// May only be present if DataType is TIMESTAMP.
 	DateInterval *DateInterval `json:"dateInterval,omitempty"`
 }
 
@@ -65,17 +65,17 @@ func NewAnalysisQueryResult(analysis AnalysisQuery) AnalysisResult {
 		RowsMeta:            analysis.RowSplit,
 		Columns:             make([]ColumnResult, 0, analysis.ColumnSplit.Limit),
 		ColumnsMeta:         analysis.ColumnSplit,
-		AggregationDataType: analysis.Aggregation.BaseColumnDataType,
+		AggregationDataType: analysis.Aggregation.DataType,
 	}
 }
 
 func (analysisResult *AnalysisResult) NewResultHandle() (handle ResultHandle, err error) {
-	handle.Column, err = NewTypedValue(analysisResult.ColumnsMeta.BaseColumnDataType)
+	handle.Column, err = NewTypedValue(analysisResult.ColumnsMeta.DataType)
 	if err != nil {
 		return ResultHandle{}, wrap.Error(err, "failed to initialize column value")
 	}
 
-	handle.Row, err = NewTypedValue(analysisResult.RowsMeta.BaseColumnDataType)
+	handle.Row, err = NewTypedValue(analysisResult.RowsMeta.DataType)
 	if err != nil {
 		return ResultHandle{}, wrap.Error(err, "failed to initialize row value")
 	}
@@ -127,14 +127,14 @@ func (analysisResult *AnalysisResult) GetOrCreateRowResult(
 		}
 	}
 
-	rowValue, err := NewTypedValue(analysisResult.RowsMeta.BaseColumnDataType)
+	rowValue, err := NewTypedValue(analysisResult.RowsMeta.DataType)
 	if err != nil {
 		return RowResult{}, wrap.Error(err, "failed to initialize row field value")
 	}
 	if ok := rowValue.Set(handle.Row.Value()); !ok {
 		return RowResult{}, fmt.Errorf(
 			"failed to set row field value of type %v to '%v'",
-			analysisResult.RowsMeta.BaseColumnDataType,
+			analysisResult.RowsMeta.DataType,
 			handle.Row.Value(),
 		)
 	}
@@ -146,7 +146,7 @@ func (analysisResult *AnalysisResult) GetOrCreateRowResult(
 	if ok := aggregationTotal.Set(handle.Total.Value()); !ok {
 		return RowResult{}, fmt.Errorf(
 			"failed to set aggregation total of type %v to '%v'",
-			analysisResult.RowsMeta.BaseColumnDataType,
+			analysisResult.RowsMeta.DataType,
 			handle.Total.Value(),
 		)
 	}
@@ -179,14 +179,14 @@ func (analysisResult *AnalysisResult) InitializeColumnResult(
 	}
 
 	// If the column is not added previously, we parse the column value.
-	columnValue, err := NewTypedValue(analysisResult.ColumnsMeta.BaseColumnDataType)
+	columnValue, err := NewTypedValue(analysisResult.ColumnsMeta.DataType)
 	if err != nil {
 		return 0, wrap.Error(err, "failed to initialize column field value")
 	}
 	if ok := columnValue.Set(handle.Column.Value()); !ok {
 		return 0, fmt.Errorf(
 			"failed to set column field value of type %v to '%v'",
-			analysisResult.ColumnsMeta.BaseColumnDataType,
+			analysisResult.ColumnsMeta.DataType,
 			handle.Column.Value(),
 		)
 	}
