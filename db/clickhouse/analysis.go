@@ -47,64 +47,61 @@ func buildAnalysisQueryString(analysis db.AnalysisQuery, table string) (string, 
 		analysis.RowSplit.FieldName,
 		analysis.Aggregation.FieldName,
 	); err != nil {
-		return "", wrap.Error(err, "invalid identifier in query")
+		return "", wrap.Error(err, "invalid table/field name in query")
 	}
 
 	var query QueryBuilder
-	query.WriteString("SELECT ")
+	query.WriteString(
+		"SELECT row_split, column_split, aggregation, aggregation_total FROM ",
+	)
 
-	if err := query.WriteSplit(analysis.ColumnSplit); err != nil {
-		return "", wrap.Error(err, "failed to parse query column split")
-	}
-	query.WriteString(" AS column_split, ")
-
+	// First: Group aggregations by both row and column split
+	query.WriteString("(SELECT ")
 	if err := query.WriteSplit(analysis.RowSplit); err != nil {
 		return "", wrap.Error(err, "failed to parse query row split")
 	}
 	query.WriteString(" AS row_split, ")
-
+	if err := query.WriteSplit(analysis.ColumnSplit); err != nil {
+		return "", wrap.Error(err, "failed to parse query column split")
+	}
+	query.WriteString(" AS column_split, ")
 	if err := query.WriteAggregation(analysis.Aggregation); err != nil {
 		return "", err
 	}
-	query.WriteString(" AS value_aggregation ")
-
-	query.WriteString("FROM ")
-	query.WriteIdentifier(table)
-
-	// WHERE clause to get the top K rows by totals
-	query.WriteString(" WHERE row_split IN (SELECT ")
-	query.WriteIdentifier(analysis.RowSplit.FieldName)
+	query.WriteString(" AS aggregation")
 	query.WriteString(" FROM ")
 	query.WriteIdentifier(table)
-	query.WriteString(" GROUP BY ")
-	query.WriteIdentifier(analysis.RowSplit.FieldName)
-	query.WriteString(" ORDER BY ")
-	if err := query.WriteAggregation(analysis.Aggregation); err != nil {
-		return "", err
-	}
-	query.WriteString(" DESC")
-	query.WriteString(" LIMIT ")
-	query.WriteInt(analysis.RowSplit.Limit)
-	query.WriteByte(')')
-
 	query.WriteString(" GROUP BY column_split, row_split")
+	query.WriteString(") AS splits")
 
-	query.WriteString(" ORDER BY column_split ")
-	sortOrder, ok := clickhouseSortOrders.GetName(analysis.ColumnSplit.SortOrder)
-	if !ok {
-		return "", errors.New("invalid sort order for column split")
-	}
-	query.WriteString(sortOrder)
+	// We want to join the two SELECTs on the value of row_split, so we can sort by totals
+	query.WriteString(" INNER JOIN ")
 
-	query.WriteString(", row_split ")
-	sortOrder, ok = clickhouseSortOrders.GetName(analysis.ColumnSplit.SortOrder)
-	if !ok {
+	// Second: Group aggregations by row split only, to get the totals for each row split
+	query.WriteString("(SELECT ")
+	query.WriteSplit(analysis.RowSplit) // Error checked in previous SELECT
+	query.WriteString(" AS row_split, ")
+	query.WriteAggregation(analysis.Aggregation) // Error checked in previous SELECT
+	query.WriteString(" AS aggregation_total")
+	query.WriteString(" FROM ")
+	query.WriteIdentifier(table)
+	query.WriteString(" GROUP BY row_split")
+	query.WriteString(" ORDER BY aggregation_total ")
+	if ok := query.WriteSortOrder(analysis.RowSplit.SortOrder); !ok {
 		return "", errors.New("invalid sort order for row split")
 	}
-	query.WriteString(sortOrder)
-
 	query.WriteString(" LIMIT ")
-	query.WriteInt(analysis.ColumnSplit.Limit * analysis.RowSplit.Limit)
+	query.WriteInt(analysis.RowSplit.Limit)
+	query.WriteString(") AS totals")
+
+	query.WriteString(" ON splits.row_split = totals.row_split")
+
+	query.WriteString(" ORDER BY aggregation_total ")
+	query.WriteSortOrder(analysis.RowSplit.SortOrder) // Checked for ok above
+	query.WriteString(", column_split ")
+	if ok := query.WriteSortOrder(analysis.ColumnSplit.SortOrder); !ok {
+		return "", errors.New("invalid sort order for column split")
+	}
 
 	return query.String(), nil
 }
@@ -122,9 +119,10 @@ func parseAnalysisResultRows(
 		}
 
 		if err := rows.Scan(
-			resultHandle.Column.Pointer(),
 			resultHandle.Row.Pointer(),
+			resultHandle.Column.Pointer(),
 			resultHandle.Aggregation.Pointer(),
+			resultHandle.Total.Pointer(),
 		); err != nil {
 			return db.AnalysisResult{}, wrap.Error(err, "failed to scan result row")
 		}

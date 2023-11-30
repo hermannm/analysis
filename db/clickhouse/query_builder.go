@@ -28,6 +28,15 @@ func (query *QueryBuilder) WriteIdentifier(identifier string) {
 	query.WriteByte('`')
 }
 
+func (query *QueryBuilder) WriteSortOrder(sortOrder db.SortOrder) (ok bool) {
+	if sortOrder, ok := clickhouseSortOrders.GetName(sortOrder); ok {
+		query.WriteString(sortOrder)
+		return true
+	} else {
+		return false
+	}
+}
+
 func (query *QueryBuilder) WriteAggregation(aggregation db.Aggregation) error {
 	if err := aggregation.DataType.IsValidForAggregation(); err != nil {
 		return err
