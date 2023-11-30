@@ -3,50 +3,58 @@ package db
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"time"
 )
 
 type TypedValueList interface {
 	Insert(index int, item any) (ok bool)
-	Truncate(maxLength int)
+	InsertZero(index int)
+	AddZeroesUpToLength(length int)
 }
 
 type typedValueList[T any] struct {
 	values []T
 }
 
-func NewTypedValueList(dataType DataType, length int) (TypedValueList, error) {
+func NewTypedValueList(dataType DataType, capacity int) (TypedValueList, error) {
 	switch dataType {
 	case DataTypeText:
-		return &typedValueList[string]{make([]string, length)}, nil
+		return &typedValueList[string]{make([]string, 0, capacity)}, nil
 	case DataTypeInt:
-		return &typedValueList[int64]{make([]int64, length)}, nil
+		return &typedValueList[int64]{make([]int64, 0, capacity)}, nil
 	case DataTypeFloat:
-		return &typedValueList[float64]{make([]float64, length)}, nil
+		return &typedValueList[float64]{make([]float64, 0, capacity)}, nil
 	case DataTypeTimestamp:
-		return &typedValueList[time.Time]{make([]time.Time, length)}, nil
+		return &typedValueList[time.Time]{make([]time.Time, 0, capacity)}, nil
 	case DataTypeUUID:
-		return &typedValueList[string]{make([]string, length)}, nil
+		return &typedValueList[string]{make([]string, 0, capacity)}, nil
 	default:
 		return nil, fmt.Errorf("unrecognized data type %v", dataType)
 	}
 }
 
-func (list *typedValueList[T]) Insert(index int, item any) (ok bool) {
-	if index < 0 || index >= len(list.values) {
-		return true
-	}
+func (list *typedValueList[T]) Insert(index int, value any) (ok bool) {
+	if value, ok := value.(T); ok {
+		if index > len(list.values) {
+			list.AddZeroesUpToLength(index)
+		}
 
-	if item, ok := item.(T); ok {
-		list.values[index] = item
+		list.values = slices.Insert(list.values, index, value)
 		return true
 	} else {
 		return false
 	}
 }
 
-func (list *typedValueList[T]) Truncate(maxLength int) {
-	list.values = list.values[:maxLength]
+func (list *typedValueList[T]) InsertZero(index int) {
+	var zero T
+	list.values = slices.Insert(list.values, index, zero)
+}
+
+func (list *typedValueList[T]) AddZeroesUpToLength(length int) {
+	zeroes := make([]T, length-len(list.values))
+	list.values = append(list.values, zeroes...)
 }
 
 func (list typedValueList[T]) MarshalJSON() ([]byte, error) {
