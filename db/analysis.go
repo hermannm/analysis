@@ -186,11 +186,7 @@ func (analysisResult *AnalysisResult) InitializeColumnResult(
 		}
 
 		for i, column := range analysisResult.Columns {
-			less, err := compareValues(
-				columnValue,
-				column.FieldValue.Value(),
-				analysisResult.ColumnsMeta.BaseColumnDataType,
-			)
+			less, err := fieldValue.LessThan(column.FieldValue.Value())
 			if err != nil {
 				return 0, wrap.Error(err, "failed to compare column values")
 			}
