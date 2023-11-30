@@ -250,6 +250,15 @@ func parseAnalysisQueryResponse(
 	analysisResult := db.NewAnalysisQueryResult(analysis)
 
 	for _, rowSplit := range response.Aggregations.RowSplit.Buckets {
+		aggregationTotal, ok := rowSplit.ValueAggregationTotal[analysis.ValueAggregation.BaseColumnName]
+		if !ok {
+			return db.AnalysisResult{}, fmt.Errorf(
+				"expected value aggregation total to have field name '%s' as key, but got %v",
+				analysis.ValueAggregation.BaseColumnName,
+				rowSplit.ValueAggregationTotal,
+			)
+		}
+
 		for _, columnSplit := range rowSplit.ColumnSplit.Buckets {
 			resultHandle, err := analysisResult.NewResultHandle()
 			if err != nil {
@@ -257,7 +266,7 @@ func parseAnalysisQueryResponse(
 			}
 
 			if err := setResultValue(
-				resultHandle.ColumnValue,
+				resultHandle.Column,
 				columnSplit.Key,
 				analysisResult.ColumnsMeta.BaseColumnDataType,
 			); err != nil {
@@ -268,13 +277,24 @@ func parseAnalysisQueryResponse(
 			}
 
 			if err := setResultValue(
-				resultHandle.RowValue,
+				resultHandle.Row,
 				rowSplit.Key,
 				analysisResult.RowsMeta.BaseColumnDataType,
 			); err != nil {
 				return db.AnalysisResult{}, wrap.Error(
 					err,
 					"failed to set result value for row split",
+				)
+			}
+
+			if err := setResultValue(
+				resultHandle.Total,
+				aggregationTotal,
+				analysisResult.ValueAggregationDataType,
+			); err != nil {
+				return db.AnalysisResult{}, wrap.Error(
+					err,
+					"failed to set result value for value aggregation",
 				)
 			}
 
@@ -286,9 +306,8 @@ func parseAnalysisQueryResponse(
 					columnSplit.ValueAggregation,
 				)
 			}
-
 			if err := setResultValue(
-				resultHandle.ValueAggregation,
+				resultHandle.Aggregation,
 				aggregatedValue,
 				analysisResult.ValueAggregationDataType,
 			); err != nil {

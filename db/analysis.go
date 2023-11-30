@@ -43,8 +43,9 @@ type AnalysisResult struct {
 }
 
 type RowResult struct {
-	FieldValue       TypedValue     `json:"fieldValue"`
-	AggregatedValues TypedValueList `json:"aggregatedValues"`
+	FieldValue           TypedValue     `json:"fieldValue"`
+	AggregationTotal     TypedValue     `json:"aggregationTotal"`
+	AggregationsByColumn TypedValueList `json:"aggregationsByColumn"`
 }
 
 type ColumnResult struct {
@@ -52,9 +53,10 @@ type ColumnResult struct {
 }
 
 type ResultHandle struct {
-	ColumnValue      TypedValue
-	RowValue         TypedValue
-	ValueAggregation TypedValue
+	Column      TypedValue
+	Row         TypedValue
+	Aggregation TypedValue
+	Total       TypedValue
 }
 
 func NewAnalysisQueryResult(analysis AnalysisQuery) AnalysisResult {
@@ -68,40 +70,45 @@ func NewAnalysisQueryResult(analysis AnalysisQuery) AnalysisResult {
 }
 
 func (analysisResult *AnalysisResult) NewResultHandle() (handle ResultHandle, err error) {
-	handle.ColumnValue, err = NewTypedValue(analysisResult.ColumnsMeta.BaseColumnDataType)
+	handle.Column, err = NewTypedValue(analysisResult.ColumnsMeta.BaseColumnDataType)
 	if err != nil {
 		return ResultHandle{}, wrap.Error(err, "failed to initialize column value")
 	}
 
-	handle.RowValue, err = NewTypedValue(analysisResult.RowsMeta.BaseColumnDataType)
+	handle.Row, err = NewTypedValue(analysisResult.RowsMeta.BaseColumnDataType)
 	if err != nil {
 		return ResultHandle{}, wrap.Error(err, "failed to initialize row value")
 	}
 
-	handle.ValueAggregation, err = NewTypedValue(analysisResult.ValueAggregationDataType)
+	handle.Aggregation, err = NewTypedValue(analysisResult.ValueAggregationDataType)
 	if err != nil {
 		return ResultHandle{}, wrap.Error(err, "failed to initialize value aggregation")
+	}
+
+	handle.Total, err = NewTypedValue(analysisResult.ValueAggregationDataType)
+	if err != nil {
+		return ResultHandle{}, wrap.Error(err, "failed to initialize value aggregation total")
 	}
 
 	return handle, nil
 }
 
 func (analysisResult *AnalysisResult) ParseResultHandle(handle ResultHandle) error {
-	rowResult, err := analysisResult.GetOrCreateRowResult(handle.RowValue.Value())
+	rowResult, err := analysisResult.GetOrCreateRowResult(handle)
 	if err != nil {
 		return wrap.Error(err, "failed to parse row result")
 	}
 
-	columnIndex, err := analysisResult.InitializeColumnResult(handle.ColumnValue.Value())
+	columnIndex, err := analysisResult.InitializeColumnResult(handle)
 	if err != nil {
 		return wrap.Error(err, "failed to parse column result")
 	}
 
-	ok := rowResult.AggregatedValues.Insert(columnIndex, handle.ValueAggregation.Value())
+	ok := rowResult.AggregationsByColumn.Insert(columnIndex, handle.Aggregation.Value())
 	if !ok {
 		return fmt.Errorf(
 			"failed to insert aggregated value '%v' as %v into query result",
-			handle.ValueAggregation.Value(),
+			handle.Aggregation.Value(),
 			analysisResult.ValueAggregationDataType,
 		)
 	}
@@ -110,61 +117,77 @@ func (analysisResult *AnalysisResult) ParseResultHandle(handle ResultHandle) err
 }
 
 func (analysisResult *AnalysisResult) GetOrCreateRowResult(
-	rowValue any,
+	handle ResultHandle,
 ) (rowResult RowResult, err error) {
-	// Iterates in reverse, as the row result we want is likely the previous element
+	// Iterates in reverse, as the row result we want is likely the previous element.
 	for i := len(analysisResult.Rows) - 1; i >= 0; i-- {
 		rowResult = analysisResult.Rows[i]
-		if rowResult.FieldValue.Equals(rowValue) {
+		if rowResult.FieldValue.Equals(handle.Row.Value()) {
 			return rowResult, nil
 		}
 	}
 
-	baseColumnValue, err := NewTypedValue(analysisResult.RowsMeta.BaseColumnDataType)
+	rowValue, err := NewTypedValue(analysisResult.RowsMeta.BaseColumnDataType)
 	if err != nil {
 		return RowResult{}, wrap.Error(err, "failed to initialize row field value")
 	}
-	if ok := baseColumnValue.Set(rowValue); !ok {
+	if ok := rowValue.Set(handle.Row.Value()); !ok {
 		return RowResult{}, fmt.Errorf(
 			"failed to set row field value of type %v to '%v'",
 			analysisResult.RowsMeta.BaseColumnDataType,
-			rowValue,
+			handle.Row.Value(),
 		)
 	}
 
-	aggregatedValues, err := NewTypedValueList(
+	aggregationTotal, err := NewTypedValue(analysisResult.ValueAggregationDataType)
+	if err != nil {
+		return RowResult{}, wrap.Error(err, "failed to initialize value aggregation total")
+	}
+	if ok := aggregationTotal.Set(handle.Total.Value()); !ok {
+		return RowResult{}, fmt.Errorf(
+			"failed to set value aggregation total of type %v to '%v'",
+			analysisResult.RowsMeta.BaseColumnDataType,
+			handle.Total.Value(),
+		)
+	}
+
+	aggregationsByColumn, err := NewTypedValueList(
 		analysisResult.ValueAggregationDataType,
 		analysisResult.ColumnsMeta.Limit,
 	)
 	if err != nil {
-		return RowResult{}, wrap.Error(err, "failed to initialize query result values list")
+		return RowResult{}, wrap.Error(err, "failed to initialize aggregations in query result")
 	}
 
-	rowResult = RowResult{FieldValue: baseColumnValue, AggregatedValues: aggregatedValues}
+	rowResult = RowResult{
+		FieldValue:           rowValue,
+		AggregationTotal:     aggregationTotal,
+		AggregationsByColumn: aggregationsByColumn,
+	}
 	analysisResult.Rows = append(analysisResult.Rows, rowResult)
 	return rowResult, nil
 }
 
 func (analysisResult *AnalysisResult) InitializeColumnResult(
-	columnValue any,
+	handle ResultHandle,
 ) (columnIndex int, err error) {
 	// If the column is already added, we return its index.
 	for i, column := range analysisResult.Columns {
-		if column.FieldValue.Equals(columnValue) {
+		if column.FieldValue.Equals(handle.Column.Value()) {
 			return i, nil
 		}
 	}
 
 	// If the column is not added previously, we parse the column value.
-	fieldValue, err := NewTypedValue(analysisResult.ColumnsMeta.BaseColumnDataType)
+	columnValue, err := NewTypedValue(analysisResult.ColumnsMeta.BaseColumnDataType)
 	if err != nil {
 		return 0, wrap.Error(err, "failed to initialize column field value")
 	}
-	if ok := fieldValue.Set(columnValue); !ok {
+	if ok := columnValue.Set(handle.Column.Value()); !ok {
 		return 0, fmt.Errorf(
 			"failed to set column field value of type %v to '%v'",
 			analysisResult.ColumnsMeta.BaseColumnDataType,
-			columnValue,
+			handle.Column.Value(),
 		)
 	}
 
@@ -181,7 +204,7 @@ func (analysisResult *AnalysisResult) InitializeColumnResult(
 		}
 
 		for i, column := range analysisResult.Columns {
-			less, err := fieldValue.LessThan(column.FieldValue.Value())
+			less, err := columnValue.LessThan(column.FieldValue.Value())
 			if err != nil {
 				return 0, wrap.Error(err, "failed to compare column values")
 			}
@@ -192,16 +215,17 @@ func (analysisResult *AnalysisResult) InitializeColumnResult(
 			}
 		}
 	}
+
 	analysisResult.Columns = slices.Insert(
 		analysisResult.Columns,
 		newColumnIndex,
-		ColumnResult{FieldValue: fieldValue},
+		ColumnResult{FieldValue: columnValue},
 	)
 
 	// Go through all rows before the one currently being processed, to insert 0 at the new column
 	// index.
 	for i := 0; i < len(analysisResult.Rows)-1; i++ {
-		analysisResult.Rows[i].AggregatedValues.InsertZero(newColumnIndex)
+		analysisResult.Rows[i].AggregationsByColumn.InsertZero(newColumnIndex)
 	}
 
 	return newColumnIndex, nil
@@ -209,6 +233,6 @@ func (analysisResult *AnalysisResult) InitializeColumnResult(
 
 func (analysisResult *AnalysisResult) FillEmptyValueAggregations() {
 	for _, row := range analysisResult.Rows {
-		row.AggregatedValues.AddZeroesUpToLength(len(analysisResult.Columns))
+		row.AggregationsByColumn.AddZeroesUpToLength(len(analysisResult.Columns))
 	}
 }
