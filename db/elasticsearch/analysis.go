@@ -12,7 +12,6 @@ import (
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/gappolicy"
 	"hermannm.dev/analysis/db"
-	"hermannm.dev/devlog/log"
 	"hermannm.dev/wrap"
 )
 
@@ -112,8 +111,6 @@ func (elastic ElasticsearchDB) buildAnalysisQueryRequest(
 	aggregations := map[string]types.Aggregations{
 		rowSplitName: rowSplit,
 	}
-
-	log.DebugJSON(aggregations, "Elasticsearch request aggregations")
 
 	query := types.NewQuery()
 	query.Match["supplierId"] = types.MatchQuery{
@@ -250,8 +247,6 @@ func parseAnalysisQueryResponse(
 	response analysisQueryResponse,
 	analysis db.AnalysisQuery,
 ) (db.AnalysisResult, error) {
-	log.DebugJSON(response, "received Elasticsearch response")
-
 	analysisResult := db.NewAnalysisQueryResult(analysis)
 
 	for _, rowSplit := range response.Aggregations.RowSplit.Buckets {

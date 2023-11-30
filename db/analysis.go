@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"slices"
 
-	"hermannm.dev/devlog/log"
 	"hermannm.dev/wrap"
 )
 
@@ -88,14 +87,10 @@ func (analysisResult *AnalysisResult) NewResultHandle() (handle ResultHandle, er
 }
 
 func (analysisResult *AnalysisResult) ParseResultHandle(handle ResultHandle) error {
-	log.DebugJSON(handle, "result handle")
-
 	rowResult, err := analysisResult.GetOrCreateRowResult(handle.RowValue.Value())
 	if err != nil {
 		return wrap.Error(err, "failed to parse row result")
 	}
-
-	log.DebugJSON(rowResult, "row result")
 
 	columnIndex, err := analysisResult.InitializeColumnResult(handle.ColumnValue.Value())
 	if err != nil {
@@ -190,8 +185,6 @@ func (analysisResult *AnalysisResult) InitializeColumnResult(
 			if err != nil {
 				return 0, wrap.Error(err, "failed to compare column values")
 			}
-
-			log.Debugf("%v < %v: %v", columnValue, column.FieldValue.Value(), less)
 
 			if (less && ascending) || (!less && !ascending) {
 				newColumnIndex = i
