@@ -8,15 +8,15 @@ import (
 )
 
 type AnalysisQuery struct {
-	ValueAggregation ValueAggregation `json:"valueAggregation"`
-	RowSplit         Split            `json:"rowSplit"`
-	ColumnSplit      Split            `json:"columnSplit"`
+	Aggregation Aggregation `json:"aggregation"`
+	RowSplit    Split       `json:"rowSplit"`
+	ColumnSplit Split       `json:"columnSplit"`
 }
 
-type ValueAggregation struct {
-	BaseColumnName     string      `json:"baseColumnName"`
-	BaseColumnDataType DataType    `json:"baseColumnDataType"`
-	Aggregation        Aggregation `json:"aggregation"`
+type Aggregation struct {
+	BaseColumnName     string          `json:"baseColumnName"`
+	BaseColumnDataType DataType        `json:"baseColumnDataType"`
+	Kind               AggregationKind `json:"kind"`
 }
 
 type Split struct {
@@ -25,9 +25,9 @@ type Split struct {
 	Limit              int       `json:"limit"`
 	SortOrder          SortOrder `json:"sortOrder"`
 	// May only be present if BaseColumnDataType is INTEGER.
-	IntegerInterval int `json:"numberIntervalInt,omitempty"`
+	IntegerInterval int `json:"integerInterval,omitempty"`
 	// May only be present if BaseColumnDataType is FLOAT.
-	FloatInterval float64 `json:"numberIntervalFloat,omitempty"`
+	FloatInterval float64 `json:"floatInterval,omitempty"`
 	// May only be present if BaseColumnDataType is TIMESTAMP.
 	DateInterval *DateInterval `json:"dateInterval,omitempty"`
 }
@@ -39,7 +39,7 @@ type AnalysisResult struct {
 	Columns     []ColumnResult `json:"columns"`
 	ColumnsMeta Split          `json:"columnsMeta"`
 
-	ValueAggregationDataType DataType `json:"valueAggregationDataType"`
+	AggregationDataType DataType `json:"aggregationDataType"`
 }
 
 type RowResult struct {
@@ -61,11 +61,11 @@ type ResultHandle struct {
 
 func NewAnalysisQueryResult(analysis AnalysisQuery) AnalysisResult {
 	return AnalysisResult{
-		Rows:                     make([]RowResult, 0, analysis.RowSplit.Limit),
-		RowsMeta:                 analysis.RowSplit,
-		Columns:                  make([]ColumnResult, 0, analysis.ColumnSplit.Limit),
-		ColumnsMeta:              analysis.ColumnSplit,
-		ValueAggregationDataType: analysis.ValueAggregation.BaseColumnDataType,
+		Rows:                make([]RowResult, 0, analysis.RowSplit.Limit),
+		RowsMeta:            analysis.RowSplit,
+		Columns:             make([]ColumnResult, 0, analysis.ColumnSplit.Limit),
+		ColumnsMeta:         analysis.ColumnSplit,
+		AggregationDataType: analysis.Aggregation.BaseColumnDataType,
 	}
 }
 
@@ -80,14 +80,14 @@ func (analysisResult *AnalysisResult) NewResultHandle() (handle ResultHandle, er
 		return ResultHandle{}, wrap.Error(err, "failed to initialize row value")
 	}
 
-	handle.Aggregation, err = NewTypedValue(analysisResult.ValueAggregationDataType)
+	handle.Aggregation, err = NewTypedValue(analysisResult.AggregationDataType)
 	if err != nil {
-		return ResultHandle{}, wrap.Error(err, "failed to initialize value aggregation")
+		return ResultHandle{}, wrap.Error(err, "failed to initialize aggregation")
 	}
 
-	handle.Total, err = NewTypedValue(analysisResult.ValueAggregationDataType)
+	handle.Total, err = NewTypedValue(analysisResult.AggregationDataType)
 	if err != nil {
-		return ResultHandle{}, wrap.Error(err, "failed to initialize value aggregation total")
+		return ResultHandle{}, wrap.Error(err, "failed to initialize aggregation total")
 	}
 
 	return handle, nil
@@ -109,7 +109,7 @@ func (analysisResult *AnalysisResult) ParseResultHandle(handle ResultHandle) err
 		return fmt.Errorf(
 			"failed to insert aggregated value '%v' as %v into query result",
 			handle.Aggregation.Value(),
-			analysisResult.ValueAggregationDataType,
+			analysisResult.AggregationDataType,
 		)
 	}
 
@@ -139,20 +139,20 @@ func (analysisResult *AnalysisResult) GetOrCreateRowResult(
 		)
 	}
 
-	aggregationTotal, err := NewTypedValue(analysisResult.ValueAggregationDataType)
+	aggregationTotal, err := NewTypedValue(analysisResult.AggregationDataType)
 	if err != nil {
-		return RowResult{}, wrap.Error(err, "failed to initialize value aggregation total")
+		return RowResult{}, wrap.Error(err, "failed to initialize aggregation total")
 	}
 	if ok := aggregationTotal.Set(handle.Total.Value()); !ok {
 		return RowResult{}, fmt.Errorf(
-			"failed to set value aggregation total of type %v to '%v'",
+			"failed to set aggregation total of type %v to '%v'",
 			analysisResult.RowsMeta.BaseColumnDataType,
 			handle.Total.Value(),
 		)
 	}
 
 	aggregationsByColumn, err := NewTypedValueList(
-		analysisResult.ValueAggregationDataType,
+		analysisResult.AggregationDataType,
 		analysisResult.ColumnsMeta.Limit,
 	)
 	if err != nil {
@@ -231,7 +231,7 @@ func (analysisResult *AnalysisResult) InitializeColumnResult(
 	return newColumnIndex, nil
 }
 
-func (analysisResult *AnalysisResult) FillEmptyValueAggregations() {
+func (analysisResult *AnalysisResult) FillEmptyAggregations() {
 	for _, row := range analysisResult.Rows {
 		row.AggregationsByColumn.AddZeroesUpToLength(len(analysisResult.Columns))
 	}

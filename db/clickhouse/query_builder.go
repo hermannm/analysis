@@ -28,19 +28,19 @@ func (query *QueryBuilder) WriteIdentifier(identifier string) {
 	query.WriteByte('`')
 }
 
-func (query *QueryBuilder) WriteValueAggregation(valueAggregation db.ValueAggregation) error {
-	if err := valueAggregation.BaseColumnDataType.IsValidForAggregation(); err != nil {
+func (query *QueryBuilder) WriteAggregation(aggregation db.Aggregation) error {
+	if err := aggregation.BaseColumnDataType.IsValidForAggregation(); err != nil {
 		return err
 	}
 
-	aggregation, ok := clickhouseAggregations.GetName(valueAggregation.Aggregation)
+	kind, ok := clickhouseAggregationKinds.GetName(aggregation.Kind)
 	if !ok {
-		return errors.New("invalid aggregation type for value aggregation in query")
+		return errors.New("aggregation kind in query was not recognized")
 	}
-	query.WriteString(aggregation)
+	query.WriteString(kind)
 
 	query.WriteByte('(')
-	query.WriteIdentifier(valueAggregation.BaseColumnName)
+	query.WriteIdentifier(aggregation.BaseColumnName)
 	query.WriteByte(')')
 	return nil
 }

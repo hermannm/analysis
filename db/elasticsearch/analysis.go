@@ -42,10 +42,10 @@ func (elastic ElasticsearchDB) RunAnalysisQuery(
 }
 
 const (
-	columnSplitName       = "column_split"
-	rowSplitName          = "row_split"
-	valueAggregationName  = "value_aggregation"
-	valueAggregationTotal = "value_aggregation_total"
+	columnSplitName      = "column_split"
+	rowSplitName         = "row_split"
+	aggregationName      = "aggregation"
+	aggregationTotalName = "aggregation_total"
 )
 
 type analysisQueryResponse struct {
@@ -54,12 +54,12 @@ type analysisQueryResponse struct {
 			Buckets []struct {
 				Key any `json:"key"`
 				// Maps field name to total of aggregated values
-				ValueAggregationTotal map[string]any `json:"value_aggregation_total"`
-				ColumnSplit           struct {
+				AggregationTotal map[string]any `json:"aggregation_total"`
+				ColumnSplit      struct {
 					Buckets []struct {
 						Key any `json:"key"`
 						// Maps field name to the aggregated value
-						ValueAggregation map[string]any `json:"value_aggregation"`
+						Aggregation map[string]any `json:"aggregation"`
 					} `json:"buckets"`
 				} `json:"column_split"`
 			} `json:"buckets"`
@@ -81,9 +81,9 @@ func (elastic ElasticsearchDB) buildAnalysisQueryRequest(
 		return nil, wrap.Error(err, "failed to create row split")
 	}
 
-	valueAggregation, err := createValueAggregation(analysis.ValueAggregation)
+	aggregation, err := createAnalysisAggregation(analysis.Aggregation)
 	if err != nil {
-		return nil, wrap.Error(err, "failed to create value aggregation")
+		return nil, wrap.Error(err, "failed to create aggregation")
 	}
 
 	sortOrder, ok := sortOrderToElastic(analysis.RowSplit.SortOrder)
@@ -93,7 +93,7 @@ func (elastic ElasticsearchDB) buildAnalysisQueryRequest(
 	bucketSort := &types.BucketSortAggregation{
 		Sort: []types.SortCombinations{
 			types.SortOptions{SortOptions: map[string]types.FieldSort{
-				valueAggregationTotal: {Order: &sortOrder},
+				aggregationTotalName: {Order: &sortOrder},
 			}},
 		},
 		Size:      &analysis.RowSplit.Limit,
@@ -101,12 +101,12 @@ func (elastic ElasticsearchDB) buildAnalysisQueryRequest(
 	}
 
 	columnSplit.Aggregations = map[string]types.Aggregations{
-		valueAggregationName: valueAggregation,
+		aggregationName: aggregation,
 	}
 	rowSplit.Aggregations = map[string]types.Aggregations{
-		columnSplitName:                 columnSplit,
-		valueAggregationTotal:           valueAggregation,
-		valueAggregationTotal + "_sort": {BucketSort: bucketSort},
+		columnSplitName:                columnSplit,
+		aggregationTotalName:           aggregation,
+		aggregationTotalName + "_sort": {BucketSort: bucketSort},
 	}
 	aggregations := map[string]types.Aggregations{
 		rowSplitName: rowSplit,
@@ -183,14 +183,14 @@ func createSplit(split db.Split) (types.Aggregations, error) {
 	}}, nil
 }
 
-func createValueAggregation(valueAggregation db.ValueAggregation) (types.Aggregations, error) {
-	if err := valueAggregation.BaseColumnDataType.IsValidForAggregation(); err != nil {
+func createAnalysisAggregation(aggregation db.Aggregation) (types.Aggregations, error) {
+	if err := aggregation.BaseColumnDataType.IsValidForAggregation(); err != nil {
 		return types.Aggregations{}, err
 	}
 
-	field := valueAggregation.BaseColumnName
+	field := aggregation.BaseColumnName
 
-	switch valueAggregation.Aggregation {
+	switch aggregation.Kind {
 	case db.AggregationSum:
 		return types.Aggregations{Sum: &types.SumAggregation{Field: &field}}, nil
 	case db.AggregationAverage:
@@ -250,12 +250,12 @@ func parseAnalysisQueryResponse(
 	analysisResult := db.NewAnalysisQueryResult(analysis)
 
 	for _, rowSplit := range response.Aggregations.RowSplit.Buckets {
-		aggregationTotal, ok := rowSplit.ValueAggregationTotal[analysis.ValueAggregation.BaseColumnName]
+		aggregationTotal, ok := rowSplit.AggregationTotal[analysis.Aggregation.BaseColumnName]
 		if !ok {
 			return db.AnalysisResult{}, fmt.Errorf(
-				"expected value aggregation total to have field name '%s' as key, but got %v",
-				analysis.ValueAggregation.BaseColumnName,
-				rowSplit.ValueAggregationTotal,
+				"expected aggregation total to have field name '%s' as key, but got %v",
+				analysis.Aggregation.BaseColumnName,
+				rowSplit.AggregationTotal,
 			)
 		}
 
@@ -290,30 +290,30 @@ func parseAnalysisQueryResponse(
 			if err := setResultValue(
 				resultHandle.Total,
 				aggregationTotal,
-				analysisResult.ValueAggregationDataType,
+				analysisResult.AggregationDataType,
 			); err != nil {
 				return db.AnalysisResult{}, wrap.Error(
 					err,
-					"failed to set result value for value aggregation",
+					"failed to set result value for aggregation total",
 				)
 			}
 
-			aggregatedValue, ok := columnSplit.ValueAggregation[analysis.ValueAggregation.BaseColumnName]
+			aggregatedValue, ok := columnSplit.Aggregation[analysis.Aggregation.BaseColumnName]
 			if !ok {
 				return db.AnalysisResult{}, fmt.Errorf(
-					"expected value aggregation result to have field name '%s' as key, but got %v",
-					analysis.ValueAggregation.BaseColumnName,
-					columnSplit.ValueAggregation,
+					"expected aggregation result to have field name '%s' as key, but got %v",
+					analysis.Aggregation.BaseColumnName,
+					columnSplit.Aggregation,
 				)
 			}
 			if err := setResultValue(
 				resultHandle.Aggregation,
 				aggregatedValue,
-				analysisResult.ValueAggregationDataType,
+				analysisResult.AggregationDataType,
 			); err != nil {
 				return db.AnalysisResult{}, wrap.Error(
 					err,
-					"failed to set result value for value aggregation",
+					"failed to set result value for aggregation",
 				)
 			}
 
@@ -323,7 +323,7 @@ func parseAnalysisQueryResponse(
 		}
 	}
 
-	analysisResult.FillEmptyValueAggregations()
+	analysisResult.FillEmptyAggregations()
 	return analysisResult, nil
 }
 

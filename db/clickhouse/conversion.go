@@ -20,7 +20,7 @@ var clickhouseSortOrders = enumnames.NewMap(map[db.SortOrder]string{
 	db.SortOrderDescending: "DESC",
 })
 
-var clickhouseAggregations = enumnames.NewMap(map[db.Aggregation]string{
+var clickhouseAggregationKinds = enumnames.NewMap(map[db.AggregationKind]string{
 	db.AggregationSum:     "sum",
 	db.AggregationAverage: "avg",
 	db.AggregationMin:     "min",

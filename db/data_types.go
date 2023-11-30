@@ -29,14 +29,17 @@ func (dataType DataType) IsValid() bool {
 }
 
 func (dataType DataType) IsValidForAggregation() error {
-	if dataType != DataTypeInt && dataType != DataTypeFloat {
+	switch dataType {
+	case DataTypeInt, DataTypeFloat:
+		return nil
+	default:
 		return fmt.Errorf(
-			"value aggregation can only be done on INTEGER or FLOAT columns, not %v",
+			"aggregation can only be done on %v/%v columns, not %v",
+			DataTypeInt,
+			DataTypeFloat,
 			dataType,
 		)
 	}
-
-	return nil
 }
 
 func (dataType DataType) String() string {

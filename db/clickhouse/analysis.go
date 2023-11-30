@@ -3,9 +3,11 @@ package clickhouse
 import (
 	"context"
 	"errors"
+	"log/slog"
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"hermannm.dev/analysis/db"
+	"hermannm.dev/devlog/log"
 	"hermannm.dev/wrap"
 )
 
@@ -18,6 +20,8 @@ func (clickhouse ClickHouseDB) RunAnalysisQuery(
 	if err != nil {
 		return db.AnalysisResult{}, wrap.Error(err, "failed to parse query")
 	}
+
+	log.Debug("generated clickhouse query", slog.String("query", queryString))
 
 	rows, err := clickhouse.conn.Query(ctx, queryString)
 	if err != nil {
@@ -41,7 +45,7 @@ func buildAnalysisQueryString(analysis db.AnalysisQuery, table string) (string, 
 		table,
 		analysis.ColumnSplit.BaseColumnName,
 		analysis.RowSplit.BaseColumnName,
-		analysis.ValueAggregation.BaseColumnName,
+		analysis.Aggregation.BaseColumnName,
 	); err != nil {
 		return "", wrap.Error(err, "invalid identifier in query")
 	}
@@ -59,7 +63,7 @@ func buildAnalysisQueryString(analysis db.AnalysisQuery, table string) (string, 
 	}
 	query.WriteString(" AS row_split, ")
 
-	if err := query.WriteValueAggregation(analysis.ValueAggregation); err != nil {
+	if err := query.WriteAggregation(analysis.Aggregation); err != nil {
 		return "", err
 	}
 	query.WriteString(" AS value_aggregation ")
@@ -75,7 +79,7 @@ func buildAnalysisQueryString(analysis db.AnalysisQuery, table string) (string, 
 	query.WriteString(" GROUP BY ")
 	query.WriteIdentifier(analysis.RowSplit.BaseColumnName)
 	query.WriteString(" ORDER BY ")
-	if err := query.WriteValueAggregation(analysis.ValueAggregation); err != nil {
+	if err := query.WriteAggregation(analysis.Aggregation); err != nil {
 		return "", err
 	}
 	query.WriteString(" DESC")
@@ -118,9 +122,9 @@ func parseAnalysisResultRows(
 		}
 
 		if err := rows.Scan(
-			resultHandle.ColumnValue.Pointer(),
-			resultHandle.RowValue.Pointer(),
-			resultHandle.ValueAggregation.Pointer(),
+			resultHandle.Column.Pointer(),
+			resultHandle.Row.Pointer(),
+			resultHandle.Aggregation.Pointer(),
 		); err != nil {
 			return db.AnalysisResult{}, wrap.Error(err, "failed to scan result row")
 		}
@@ -133,6 +137,6 @@ func parseAnalysisResultRows(
 		}
 	}
 
-	analysisResult.TruncateColumns()
+	analysisResult.FillEmptyAggregations()
 	return analysisResult, nil
 }

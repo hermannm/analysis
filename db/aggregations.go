@@ -4,17 +4,17 @@ import (
 	"hermannm.dev/enumnames"
 )
 
-type Aggregation int8
+type AggregationKind int8
 
 const (
-	AggregationSum Aggregation = iota + 1
+	AggregationSum AggregationKind = iota + 1
 	AggregationAverage
 	AggregationMin
 	AggregationMax
 	AggregationCount
 )
 
-var aggregationMap = enumnames.NewMap(map[Aggregation]string{
+var aggregationMap = enumnames.NewMap(map[AggregationKind]string{
 	AggregationSum:     "SUM",
 	AggregationAverage: "AVERAGE",
 	AggregationMin:     "MIN",
@@ -22,18 +22,18 @@ var aggregationMap = enumnames.NewMap(map[Aggregation]string{
 	AggregationCount:   "COUNT",
 })
 
-func (aggregationType Aggregation) IsValid() bool {
-	return aggregationMap.ContainsEnumValue(aggregationType)
+func (kind AggregationKind) IsValid() bool {
+	return aggregationMap.ContainsEnumValue(kind)
 }
 
-func (aggregationType Aggregation) String() string {
-	return aggregationMap.GetNameOrFallback(aggregationType, "INVALID_AGGREGATION_TYPE")
+func (kind AggregationKind) String() string {
+	return aggregationMap.GetNameOrFallback(kind, "INVALID_AGGREGATION")
 }
 
-func (aggregationType Aggregation) MarshalJSON() ([]byte, error) {
-	return aggregationMap.MarshalToNameJSON(aggregationType)
+func (kind AggregationKind) MarshalJSON() ([]byte, error) {
+	return aggregationMap.MarshalToNameJSON(kind)
 }
 
-func (aggregationType *Aggregation) UnmarshalJSON(bytes []byte) error {
-	return aggregationMap.UnmarshalFromNameJSON(bytes, aggregationType)
+func (kind *AggregationKind) UnmarshalJSON(bytes []byte) error {
+	return aggregationMap.UnmarshalFromNameJSON(bytes, kind)
 }
