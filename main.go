@@ -79,7 +79,7 @@ func dropTableAndSchema(database db.AnalysisDB, table string) {
 
 	alreadyDropped, err := database.DropTable(ctx, table)
 	if err != nil {
-		log.ErrorWarningf(
+		log.WarnErrorCausef(
 			err,
 			"failed to drop table '%s' (from DEBUG_DROP_TABLE_ON_STARTUP in env)",
 			table,
@@ -91,7 +91,7 @@ func dropTableAndSchema(database db.AnalysisDB, table string) {
 		log.Infof("dropped table '%s' (from DEBUG_DROP_TABLE_ON_STARTUP in env)", table)
 
 		if err := database.DeleteTableSchema(ctx, table); err != nil {
-			log.ErrorWarningf(err, "failed to delete schema for dropped table '%s'", table)
+			log.WarnErrorCausef(err, "failed to delete schema for dropped table '%s'", table)
 		}
 	}
 }
