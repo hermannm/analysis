@@ -8,7 +8,7 @@ require (
 	github.com/elastic/go-elasticsearch/v8 v8.10.0
 	github.com/google/uuid v1.3.1
 	github.com/joho/godotenv v1.5.1
-	hermannm.dev/devlog v0.4.0
+	hermannm.dev/devlog v0.4.1
 	hermannm.dev/enumnames v0.1.0
 	hermannm.dev/wrap v0.3.1
 )
