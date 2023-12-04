@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 
+	"hermannm.dev/devlog/log"
 	"hermannm.dev/wrap"
 )
 
@@ -175,14 +176,9 @@ func (analysisResult *AnalysisResult) InitializeColumnResult(
 	// Now we have to insert the column value at the correct index in the column list.
 	// If the column list is empty, the new index is 0.
 	// Otherwise, we go through the list to see where the new column value should be.
-	newColumnIndex := 0
+	newColumnIndex := len(analysisResult.Columns)
 	if len(analysisResult.Columns) > 0 {
 		ascending := analysisResult.ColumnsMeta.SortOrder == SortOrderAscending
-		if ascending {
-			// If columns are sorted in ascending order, we want to insert the new value at the end
-			// if it's greater than all other values.
-			newColumnIndex = len(analysisResult.Columns)
-		}
 
 		for i, column := range analysisResult.Columns {
 			less, err := columnValue.LessThan(column.FieldValue.Value())
@@ -190,7 +186,13 @@ func (analysisResult *AnalysisResult) InitializeColumnResult(
 				return 0, wrap.Error(err, "failed to compare column values")
 			}
 
-			if (less && ascending) || (!less && !ascending) {
+			if less {
+				log.Debugf("'%v' less than '%v'", columnValue.Value(), column.FieldValue.Value())
+			} else {
+				log.Debugf("'%v' greater than '%v'", columnValue.Value(), column.FieldValue.Value())
+			}
+
+			if (ascending && less) || (!ascending && !less) {
 				newColumnIndex = i
 				break
 			}
