@@ -327,7 +327,7 @@ func parseAnalysisQueryResponse(
 	return analysisResult, nil
 }
 
-func setResultValue(target db.TypedValue, value any, dataType db.DataType) error {
+func setResultValue(target db.DBValue, value any, dataType db.DataType) error {
 	// Deserializing from JSON to any makes all numeric types floating-point, so we have to convert
 	// them back to integers here before setting the value
 	switch dataType {

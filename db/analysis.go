@@ -43,20 +43,20 @@ type AnalysisResult struct {
 }
 
 type RowResult struct {
-	FieldValue           TypedValue     `json:"fieldValue"`
-	AggregationTotal     TypedValue     `json:"aggregationTotal"`
-	AggregationsByColumn TypedValueList `json:"aggregationsByColumn"`
+	FieldValue           DBValue          `json:"fieldValue"`
+	AggregationTotal     DBValue          `json:"aggregationTotal"`
+	AggregationsByColumn AggregatedValues `json:"aggregationsByColumn"`
 }
 
 type ColumnResult struct {
-	FieldValue TypedValue `json:"fieldValue"`
+	FieldValue DBValue `json:"fieldValue"`
 }
 
 type ResultHandle struct {
-	Column      TypedValue
-	Row         TypedValue
-	Aggregation TypedValue
-	Total       TypedValue
+	Column      DBValue
+	Row         DBValue
+	Aggregation DBValue
+	Total       DBValue
 }
 
 func NewAnalysisQueryResult(analysis AnalysisQuery) AnalysisResult {
@@ -70,22 +70,22 @@ func NewAnalysisQueryResult(analysis AnalysisQuery) AnalysisResult {
 }
 
 func (analysisResult *AnalysisResult) NewResultHandle() (handle ResultHandle, err error) {
-	handle.Column, err = NewTypedValue(analysisResult.ColumnsMeta.DataType)
+	handle.Column, err = NewDBValue(analysisResult.ColumnsMeta.DataType)
 	if err != nil {
 		return ResultHandle{}, wrap.Error(err, "failed to initialize column value")
 	}
 
-	handle.Row, err = NewTypedValue(analysisResult.RowsMeta.DataType)
+	handle.Row, err = NewDBValue(analysisResult.RowsMeta.DataType)
 	if err != nil {
 		return ResultHandle{}, wrap.Error(err, "failed to initialize row value")
 	}
 
-	handle.Aggregation, err = NewTypedValue(analysisResult.AggregationDataType)
+	handle.Aggregation, err = NewDBValue(analysisResult.AggregationDataType)
 	if err != nil {
 		return ResultHandle{}, wrap.Error(err, "failed to initialize aggregation")
 	}
 
-	handle.Total, err = NewTypedValue(analysisResult.AggregationDataType)
+	handle.Total, err = NewDBValue(analysisResult.AggregationDataType)
 	if err != nil {
 		return ResultHandle{}, wrap.Error(err, "failed to initialize aggregation total")
 	}
@@ -127,7 +127,7 @@ func (analysisResult *AnalysisResult) GetOrCreateRowResult(
 		}
 	}
 
-	rowValue, err := NewTypedValue(analysisResult.RowsMeta.DataType)
+	rowValue, err := NewDBValue(analysisResult.RowsMeta.DataType)
 	if err != nil {
 		return RowResult{}, wrap.Error(err, "failed to initialize row field value")
 	}
@@ -139,19 +139,7 @@ func (analysisResult *AnalysisResult) GetOrCreateRowResult(
 		)
 	}
 
-	aggregationTotal, err := NewTypedValue(analysisResult.AggregationDataType)
-	if err != nil {
-		return RowResult{}, wrap.Error(err, "failed to initialize aggregation total")
-	}
-	if ok := aggregationTotal.Set(handle.Total.Value()); !ok {
-		return RowResult{}, fmt.Errorf(
-			"failed to set aggregation total of type %v to '%v'",
-			analysisResult.RowsMeta.DataType,
-			handle.Total.Value(),
-		)
-	}
-
-	aggregationsByColumn, err := NewTypedValueList(
+	aggregationsByColumn, err := NewAggregatedValues(
 		analysisResult.AggregationDataType,
 		analysisResult.ColumnsMeta.Limit,
 	)
@@ -161,7 +149,6 @@ func (analysisResult *AnalysisResult) GetOrCreateRowResult(
 
 	rowResult = RowResult{
 		FieldValue:           rowValue,
-		AggregationTotal:     aggregationTotal,
 		AggregationsByColumn: aggregationsByColumn,
 	}
 	analysisResult.Rows = append(analysisResult.Rows, rowResult)
@@ -179,7 +166,7 @@ func (analysisResult *AnalysisResult) InitializeColumnResult(
 	}
 
 	// If the column is not added previously, we parse the column value.
-	columnValue, err := NewTypedValue(analysisResult.ColumnsMeta.DataType)
+	columnValue, err := NewDBValue(analysisResult.ColumnsMeta.DataType)
 	if err != nil {
 		return 0, wrap.Error(err, "failed to initialize column field value")
 	}
