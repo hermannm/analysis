@@ -8,9 +8,9 @@ import (
 )
 
 type AnalysisQuery struct {
-	Aggregation Aggregation `json:"aggregation"`
 	RowSplit    Split       `json:"rowSplit"`
 	ColumnSplit Split       `json:"columnSplit"`
+	Aggregation Aggregation `json:"aggregation"`
 }
 
 type Aggregation struct {
@@ -56,7 +56,6 @@ type ResultHandle struct {
 	Column      DBValue
 	Row         DBValue
 	Aggregation DBValue
-	Total       DBValue
 }
 
 func NewAnalysisQueryResult(analysis AnalysisQuery) AnalysisResult {
@@ -83,11 +82,6 @@ func (analysisResult *AnalysisResult) NewResultHandle() (handle ResultHandle, er
 	handle.Aggregation, err = NewDBValue(analysisResult.AggregationDataType)
 	if err != nil {
 		return ResultHandle{}, wrap.Error(err, "failed to initialize aggregation")
-	}
-
-	handle.Total, err = NewDBValue(analysisResult.AggregationDataType)
-	if err != nil {
-		return ResultHandle{}, wrap.Error(err, "failed to initialize aggregation total")
 	}
 
 	return handle, nil
@@ -218,7 +212,65 @@ func (analysisResult *AnalysisResult) InitializeColumnResult(
 	return newColumnIndex, nil
 }
 
-func (analysisResult *AnalysisResult) FillEmptyAggregations() {
+func (analysisResult *AnalysisResult) Finalize() error {
+	if err := analysisResult.calculateAggregationTotals(); err != nil {
+		return wrap.Error(err, "failed to calculate aggregation totals")
+	}
+
+	if err := analysisResult.sortRowsByAggregationTotals(); err != nil {
+		return wrap.Error(err, "failed to sort rows by aggregation totals")
+	}
+
+	analysisResult.fillEmptyAggregations()
+	return nil
+}
+
+func (analysisResult *AnalysisResult) calculateAggregationTotals() error {
+	for i, row := range analysisResult.Rows {
+		total, err := row.AggregationsByColumn.Total(analysisResult.AggregationDataType)
+		if err != nil {
+			return err
+		}
+		analysisResult.Rows[i].AggregationTotal = total
+	}
+	return nil
+}
+
+func (analysisResult *AnalysisResult) sortRowsByAggregationTotals() error {
+	var sortErr error
+
+	slices.SortFunc(analysisResult.Rows, func(row1 RowResult, row2 RowResult) int {
+		row2Total := row2.AggregationTotal.Value()
+		if row1.AggregationTotal.Equals(row2Total) {
+			return 0
+		}
+
+		less, err := row1.AggregationTotal.LessThan(row2Total)
+		if err != nil {
+			sortErr = err
+		}
+
+		var result int
+		if less {
+			result = -1
+		} else {
+			result = 1
+		}
+
+		switch analysisResult.RowsMeta.SortOrder {
+		case SortOrderAscending:
+			return result
+		case SortOrderDescending:
+			return -result
+		default:
+			return 0
+		}
+	})
+
+	return sortErr
+}
+
+func (analysisResult *AnalysisResult) fillEmptyAggregations() {
 	for _, row := range analysisResult.Rows {
 		row.AggregationsByColumn.AddZeroesUpToLength(len(analysisResult.Columns))
 	}

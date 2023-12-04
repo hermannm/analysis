@@ -3,11 +3,9 @@ package clickhouse
 import (
 	"context"
 	"errors"
-	"log/slog"
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"hermannm.dev/analysis/db"
-	"hermannm.dev/devlog/log"
 	"hermannm.dev/wrap"
 )
 
@@ -20,8 +18,6 @@ func (clickhouse ClickHouseDB) RunAnalysisQuery(
 	if err != nil {
 		return db.AnalysisResult{}, wrap.Error(err, "failed to parse query")
 	}
-
-	log.Debug("generated clickhouse query", slog.String("query", queryString))
 
 	rows, err := clickhouse.conn.Query(ctx, queryString)
 	if err != nil {
@@ -37,14 +33,14 @@ func (clickhouse ClickHouseDB) RunAnalysisQuery(
 }
 
 func buildAnalysisQueryString(analysis db.AnalysisQuery, table string) (string, error) {
-	if analysis.ColumnSplit.Limit == 0 || analysis.RowSplit.Limit == 0 {
+	if analysis.RowSplit.Limit == 0 || analysis.ColumnSplit.Limit == 0 {
 		return "", errors.New("column/row split limit cannot be 0")
 	}
 
 	if err := ValidateIdentifiers(
 		table,
-		analysis.ColumnSplit.FieldName,
 		analysis.RowSplit.FieldName,
+		analysis.ColumnSplit.FieldName,
 		analysis.Aggregation.FieldName,
 	); err != nil {
 		return "", wrap.Error(err, "invalid table/field name in query")
@@ -71,7 +67,7 @@ func buildAnalysisQueryString(analysis db.AnalysisQuery, table string) (string, 
 	query.WriteString("FROM ")
 	query.WriteIdentifier(table)
 
-	// WHERE clause to get the top K rows by totals
+	// WHERE clause to get the top N rows by aggregation totals
 	query.WriteString(" WHERE row_split IN (SELECT ")
 	query.WriteIdentifier(analysis.RowSplit.FieldName)
 	query.WriteString(" FROM ")
@@ -79,25 +75,13 @@ func buildAnalysisQueryString(analysis db.AnalysisQuery, table string) (string, 
 	query.WriteString(" GROUP BY ")
 	query.WriteIdentifier(analysis.RowSplit.FieldName)
 	query.WriteString(" ORDER BY ")
-	if err := query.WriteAggregation(analysis.Aggregation); err != nil {
-		return "", err
-	}
+	query.WriteAggregation(analysis.Aggregation) // err checked above
 	query.WriteString(" DESC")
 	query.WriteString(" LIMIT ")
 	query.WriteInt(analysis.RowSplit.Limit)
 	query.WriteByte(')')
 
 	query.WriteString(" GROUP BY column_split, row_split")
-
-	query.WriteString(" ORDER BY column_split ")
-	sortOrder, ok := clickhouseSortOrders.GetName(analysis.ColumnSplit.SortOrder)
-	if !ok {
-		return "", errors.New("invalid sort order for column split")
-	}
-	query.WriteString(sortOrder)
-
-	query.WriteString(" LIMIT ")
-	query.WriteInt(analysis.ColumnSplit.Limit * analysis.RowSplit.Limit)
 
 	return query.String(), nil
 }
@@ -130,6 +114,9 @@ func parseAnalysisResultRows(
 		}
 	}
 
-	analysisResult.FillEmptyAggregations()
+	if err := analysisResult.Finalize(); err != nil {
+		return db.AnalysisResult{}, err
+	}
+
 	return analysisResult, nil
 }

@@ -32,11 +32,11 @@ func NewAggregatedValues(dataType DataType, capacity int) (AggregatedValues, err
 
 func (list *aggregatedValues[T]) Insert(index int, value any) (ok bool) {
 	if value, ok := value.(T); ok {
-		if index > len(list.values) {
-			list.AddZeroesUpToLength(index)
+		if index >= len(list.values) {
+			list.AddZeroesUpToLength(index + 1)
 		}
 
-		list.values = slices.Insert(list.values, index, value)
+		list.values[index] = value
 		return true
 	} else {
 		return false
