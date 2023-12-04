@@ -13,6 +13,7 @@ type AggregatedValues interface {
 	InsertZero(index int)
 	AddZeroesUpToLength(length int)
 	Total(dataType DataType) (DBValue, error)
+	Truncate(maxLength int)
 }
 
 type aggregatedValues[T interface{ int64 | float64 }] struct {
@@ -26,7 +27,7 @@ func NewAggregatedValues(dataType DataType, capacity int) (AggregatedValues, err
 	case DataTypeFloat:
 		return &aggregatedValues[float64]{make([]float64, 0, capacity)}, nil
 	default:
-		return nil, fmt.Errorf("unrecognized data type %v", dataType)
+		return nil, fmt.Errorf("invalid data type %v", dataType)
 	}
 }
 
@@ -73,6 +74,12 @@ func (list *aggregatedValues[T]) Total(dataType DataType) (DBValue, error) {
 	}
 
 	return totalValue, nil
+}
+
+func (list *aggregatedValues[T]) Truncate(maxLength int) {
+	if len(list.values) > maxLength {
+		list.values = list.values[:maxLength]
+	}
 }
 
 func (list aggregatedValues[T]) MarshalJSON() ([]byte, error) {

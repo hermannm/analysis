@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"slices"
 
-	"hermannm.dev/devlog/log"
 	"hermannm.dev/wrap"
 )
 
@@ -186,12 +185,6 @@ func (analysisResult *AnalysisResult) InitializeColumnResult(
 				return 0, wrap.Error(err, "failed to compare column values")
 			}
 
-			if less {
-				log.Debugf("'%v' less than '%v'", columnValue.Value(), column.FieldValue.Value())
-			} else {
-				log.Debugf("'%v' greater than '%v'", columnValue.Value(), column.FieldValue.Value())
-			}
-
 			if (ascending && less) || (!ascending && !less) {
 				newColumnIndex = i
 				break
@@ -223,6 +216,7 @@ func (analysisResult *AnalysisResult) Finalize() error {
 		return wrap.Error(err, "failed to sort rows by aggregation totals")
 	}
 
+	analysisResult.truncateColumns()
 	analysisResult.fillEmptyAggregations()
 	return nil
 }
@@ -275,5 +269,15 @@ func (analysisResult *AnalysisResult) sortRowsByAggregationTotals() error {
 func (analysisResult *AnalysisResult) fillEmptyAggregations() {
 	for _, row := range analysisResult.Rows {
 		row.AggregationsByColumn.AddZeroesUpToLength(len(analysisResult.Columns))
+	}
+}
+
+func (analysisResult *AnalysisResult) truncateColumns() {
+	if len(analysisResult.Columns) > analysisResult.ColumnsMeta.Limit {
+		analysisResult.Columns = analysisResult.Columns[:analysisResult.ColumnsMeta.Limit]
+
+		for _, row := range analysisResult.Rows {
+			row.AggregationsByColumn.Truncate(analysisResult.ColumnsMeta.Limit)
+		}
 	}
 }
