@@ -8,9 +8,9 @@ import (
 )
 
 type AnalysisQuery struct {
+	Aggregation Aggregation `json:"aggregation"`
 	RowSplit    Split       `json:"rowSplit"`
 	ColumnSplit Split       `json:"columnSplit"`
-	Aggregation Aggregation `json:"aggregation"`
 }
 
 type Aggregation struct {
@@ -53,9 +53,9 @@ type ColumnResult struct {
 }
 
 type ResultHandle struct {
-	Column      DBValue
-	Row         DBValue
 	Aggregation DBValue
+	Row         DBValue
+	Column      DBValue
 }
 
 func NewAnalysisQueryResult(analysis AnalysisQuery) AnalysisResult {

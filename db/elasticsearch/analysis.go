@@ -70,9 +70,9 @@ func (elastic ElasticsearchDB) buildAnalysisQueryRequest(
 	analysis db.AnalysisQuery,
 	table string,
 ) (*search.Search, error) {
-	columnSplit, err := createSplit(analysis.ColumnSplit)
+	analysisAggregation, err := createAnalysisAggregation(analysis.Aggregation)
 	if err != nil {
-		return nil, wrap.Error(err, "failed to create column split")
+		return nil, wrap.Error(err, "failed to create aggregation")
 	}
 
 	rowSplit, err := createSplit(analysis.RowSplit)
@@ -80,9 +80,9 @@ func (elastic ElasticsearchDB) buildAnalysisQueryRequest(
 		return nil, wrap.Error(err, "failed to create row split")
 	}
 
-	analysisAggregation, err := createAnalysisAggregation(analysis.Aggregation)
+	columnSplit, err := createSplit(analysis.ColumnSplit)
 	if err != nil {
-		return nil, wrap.Error(err, "failed to create aggregation")
+		return nil, wrap.Error(err, "failed to create column split")
 	}
 
 	sort, err := createSortByAggregationTotals(analysis.RowSplit)
@@ -105,6 +105,29 @@ func (elastic ElasticsearchDB) buildAnalysisQueryRequest(
 	// Size 0, since we only want aggregation results
 	// https://www.elastic.co/guide/en/elasticsearch/reference/8.10/search-aggregations.html#return-only-agg-results
 	return elastic.client.Search().Index(table).Aggregations(aggregations).Size(0), nil
+}
+
+func createAnalysisAggregation(aggregation db.Aggregation) (types.Aggregations, error) {
+	if err := aggregation.DataType.IsValidForAggregation(); err != nil {
+		return types.Aggregations{}, err
+	}
+
+	field := aggregation.FieldName
+
+	switch aggregation.Kind {
+	case db.AggregationSum:
+		return types.Aggregations{Sum: &types.SumAggregation{Field: &field}}, nil
+	case db.AggregationAverage:
+		return types.Aggregations{Avg: &types.AverageAggregation{Field: &field}}, nil
+	case db.AggregationMin:
+		return types.Aggregations{Min: &types.MinAggregation{Field: &field}}, nil
+	case db.AggregationMax:
+		return types.Aggregations{Max: &types.MaxAggregation{Field: &field}}, nil
+	case db.AggregationCount:
+		return types.Aggregations{Cardinality: &types.CardinalityAggregation{Field: &field}}, nil
+	default:
+		return types.Aggregations{}, errors.New("invalid aggregation type")
+	}
 }
 
 func createSplit(split db.Split) (types.Aggregations, error) {
@@ -159,29 +182,6 @@ func createSplit(split db.Split) (types.Aggregations, error) {
 		Field: &field,
 		Size:  &size,
 	}}, nil
-}
-
-func createAnalysisAggregation(aggregation db.Aggregation) (types.Aggregations, error) {
-	if err := aggregation.DataType.IsValidForAggregation(); err != nil {
-		return types.Aggregations{}, err
-	}
-
-	field := aggregation.FieldName
-
-	switch aggregation.Kind {
-	case db.AggregationSum:
-		return types.Aggregations{Sum: &types.SumAggregation{Field: &field}}, nil
-	case db.AggregationAverage:
-		return types.Aggregations{Avg: &types.AverageAggregation{Field: &field}}, nil
-	case db.AggregationMin:
-		return types.Aggregations{Min: &types.MinAggregation{Field: &field}}, nil
-	case db.AggregationMax:
-		return types.Aggregations{Max: &types.MaxAggregation{Field: &field}}, nil
-	case db.AggregationCount:
-		return types.Aggregations{Cardinality: &types.CardinalityAggregation{Field: &field}}, nil
-	default:
-		return types.Aggregations{}, errors.New("invalid aggregation type")
-	}
 }
 
 func createSortByAggregationTotals(rowSplit db.Split) (types.Aggregations, error) {
@@ -253,28 +253,6 @@ func parseAnalysisQueryResponse(
 				return db.AnalysisResult{}, wrap.Error(err, "failed to initialize result handle")
 			}
 
-			if err := setResultValue(
-				resultHandle.Column,
-				columnSplit.Key,
-				analysisResult.ColumnsMeta.DataType,
-			); err != nil {
-				return db.AnalysisResult{}, wrap.Error(
-					err,
-					"failed to set result value for column split",
-				)
-			}
-
-			if err := setResultValue(
-				resultHandle.Row,
-				rowSplit.Key,
-				analysisResult.RowsMeta.DataType,
-			); err != nil {
-				return db.AnalysisResult{}, wrap.Error(
-					err,
-					"failed to set result value for row split",
-				)
-			}
-
 			aggregatedValue, ok := columnSplit.Aggregation[analysis.Aggregation.FieldName]
 			if !ok {
 				return db.AnalysisResult{}, fmt.Errorf(
@@ -288,10 +266,23 @@ func parseAnalysisQueryResponse(
 				aggregatedValue,
 				analysisResult.AggregationDataType,
 			); err != nil {
-				return db.AnalysisResult{}, wrap.Error(
-					err,
-					"failed to set result value for aggregation",
-				)
+				return db.AnalysisResult{}, wrap.Error(err, "failed to set aggregation result")
+			}
+
+			if err := setResultValue(
+				resultHandle.Row,
+				rowSplit.Key,
+				analysisResult.RowsMeta.DataType,
+			); err != nil {
+				return db.AnalysisResult{}, wrap.Error(err, "failed to set row result")
+			}
+
+			if err := setResultValue(
+				resultHandle.Column,
+				columnSplit.Key,
+				analysisResult.ColumnsMeta.DataType,
+			); err != nil {
+				return db.AnalysisResult{}, wrap.Error(err, "failed to set column result")
 			}
 
 			if err := analysisResult.ParseResultHandle(resultHandle); err != nil {
