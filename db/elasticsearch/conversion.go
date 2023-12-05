@@ -1,7 +1,6 @@
 package elasticsearch
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
@@ -57,17 +56,6 @@ func sortOrderToElastic(sortOrder db.SortOrder) (elasticSortOrder sortorder.Sort
 	default:
 		return sortorder.SortOrder{}, false
 	}
-}
-
-func sortOrderToElasticBucket(sortOrder db.SortOrder) (map[string]sortorder.SortOrder, error) {
-	elasticSortOrder, ok := sortOrderToElastic(sortOrder)
-	if !ok {
-		return nil, errors.New("invalid sort order")
-	}
-
-	// Bucket aggregation results have a "key" field with the bucket value
-	// https://www.elastic.co/guide/en/elasticsearch/reference/8.10/search-aggregations-bucket-histogram-aggregation.html#_order_2
-	return map[string]sortorder.SortOrder{"_key": elasticSortOrder}, nil
 }
 
 func dateIntervalToElastic(

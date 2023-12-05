@@ -124,10 +124,6 @@ func (elastic ElasticsearchDB) buildAnalysisQueryRequest(
 
 func createSplit(split db.Split) (types.Aggregations, error) {
 	field := split.FieldName
-	/* sortOrder, err := sortOrderToElasticBucket(split.SortOrder)
-	if err != nil {
-		return types.Aggregations{}, err
-	} */
 
 	switch split.DataType {
 	case db.DataTypeInt, db.DataTypeFloat:
@@ -150,7 +146,6 @@ func createSplit(split db.Split) (types.Aggregations, error) {
 			return types.Aggregations{Histogram: &types.HistogramAggregation{
 				Field:    &field,
 				Interval: &interval,
-				/* Order:    sortOrder, */
 			}}, nil
 		}
 	case db.DataTypeDateTime:
@@ -165,7 +160,6 @@ func createSplit(split db.Split) (types.Aggregations, error) {
 			return types.Aggregations{DateHistogram: &types.DateHistogramAggregation{
 				Field:            &field,
 				CalendarInterval: &dateInterval,
-				/* Order:            sortOrder, */
 			}}, nil
 		}
 	}
@@ -179,7 +173,6 @@ func createSplit(split db.Split) (types.Aggregations, error) {
 	return types.Aggregations{Terms: &types.TermsAggregation{
 		Field: &field,
 		Size:  &size,
-		/* Order: sortOrder, */
 	}}, nil
 }
 
