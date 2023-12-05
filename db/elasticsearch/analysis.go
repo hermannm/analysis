@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v8/typedapi/core/search"
@@ -81,40 +80,26 @@ func (elastic ElasticsearchDB) buildAnalysisQueryRequest(
 		return nil, wrap.Error(err, "failed to create row split")
 	}
 
-	aggregation, err := createAnalysisAggregation(analysis.Aggregation)
+	analysisAggregation, err := createAnalysisAggregation(analysis.Aggregation)
 	if err != nil {
 		return nil, wrap.Error(err, "failed to create aggregation")
 	}
 
-	sortOrder, ok := sortOrderToElastic(analysis.RowSplit.SortOrder)
-	if !ok {
-		return nil, fmt.Errorf("invalid sort order '%v'", analysis.RowSplit.SortOrder)
-	}
-	bucketSort := &types.BucketSortAggregation{
-		Sort: []types.SortCombinations{
-			types.SortOptions{SortOptions: map[string]types.FieldSort{
-				aggregationTotalName: {Order: &sortOrder},
-			}},
-		},
-		Size:      &analysis.RowSplit.Limit,
-		GapPolicy: &gappolicy.Insertzeros,
+	sort, err := createSortByAggregationTotals(analysis.RowSplit)
+	if err != nil {
+		return nil, wrap.Error(err, "failed to create aggregation sort")
 	}
 
 	columnSplit.Aggregations = map[string]types.Aggregations{
-		aggregationName: aggregation,
+		aggregationName: analysisAggregation,
 	}
 	rowSplit.Aggregations = map[string]types.Aggregations{
 		columnSplitName:                columnSplit,
-		aggregationTotalName:           aggregation,
-		aggregationTotalName + "_sort": {BucketSort: bucketSort},
+		aggregationTotalName:           analysisAggregation,
+		aggregationTotalName + "_sort": sort,
 	}
 	aggregations := map[string]types.Aggregations{
 		rowSplitName: rowSplit,
-	}
-
-	query := types.NewQuery()
-	query.Match["supplierId"] = types.MatchQuery{
-		Query: strings.ToUpper("889f32a5-b56c-466b-90c2-3cc0cfc76def"),
 	}
 
 	// Size 0, since we only want aggregation results
@@ -197,6 +182,25 @@ func createAnalysisAggregation(aggregation db.Aggregation) (types.Aggregations, 
 	default:
 		return types.Aggregations{}, errors.New("invalid aggregation type")
 	}
+}
+
+func createSortByAggregationTotals(rowSplit db.Split) (types.Aggregations, error) {
+	sortOrder, ok := sortOrderToElastic(rowSplit.SortOrder)
+	if !ok {
+		return types.Aggregations{}, errors.New("invalid sort order")
+	}
+
+	return types.Aggregations{
+		BucketSort: &types.BucketSortAggregation{
+			Sort: []types.SortCombinations{
+				types.SortOptions{SortOptions: map[string]types.FieldSort{
+					aggregationTotalName: {Order: &sortOrder},
+				}},
+			},
+			Size:      &rowSplit.Limit,
+			GapPolicy: &gappolicy.Insertzeros,
+		},
+	}, nil
 }
 
 func executeAnalysisQueryRequest(
