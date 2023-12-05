@@ -248,7 +248,7 @@ func parseAnalysisQueryResponse(
 
 	for _, rowSplit := range response.Aggregations.RowSplit.Buckets {
 		for _, columnSplit := range rowSplit.ColumnSplit.Buckets {
-			resultHandle, err := analysisResult.NewResultHandle()
+			handle, err := analysisResult.NewResultHandle()
 			if err != nil {
 				return db.AnalysisResult{}, wrap.Error(err, "failed to initialize result handle")
 			}
@@ -262,7 +262,7 @@ func parseAnalysisQueryResponse(
 				)
 			}
 			if err := setResultValue(
-				resultHandle.Aggregation,
+				handle.Aggregation,
 				aggregatedValue,
 				analysisResult.AggregationDataType,
 			); err != nil {
@@ -270,7 +270,7 @@ func parseAnalysisQueryResponse(
 			}
 
 			if err := setResultValue(
-				resultHandle.Row,
+				handle.Row,
 				rowSplit.Key,
 				analysisResult.RowsMeta.DataType,
 			); err != nil {
@@ -278,14 +278,14 @@ func parseAnalysisQueryResponse(
 			}
 
 			if err := setResultValue(
-				resultHandle.Column,
+				handle.Column,
 				columnSplit.Key,
 				analysisResult.ColumnsMeta.DataType,
 			); err != nil {
 				return db.AnalysisResult{}, wrap.Error(err, "failed to set column result")
 			}
 
-			if err := analysisResult.ParseResultHandle(resultHandle); err != nil {
+			if err := analysisResult.ParseResultHandle(handle); err != nil {
 				return db.AnalysisResult{}, err
 			}
 		}

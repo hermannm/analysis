@@ -93,24 +93,21 @@ func parseAnalysisResultRows(
 	analysisResult := db.NewAnalysisQueryResult(analysis)
 
 	for rows.Next() {
-		resultHandle, err := analysisResult.NewResultHandle()
+		handle, err := analysisResult.NewResultHandle()
 		if err != nil {
 			return db.AnalysisResult{}, wrap.Error(err, "failed to initialize result handle")
 		}
 
 		if err := rows.Scan(
-			resultHandle.Row.Pointer(),
-			resultHandle.Column.Pointer(),
-			resultHandle.Aggregation.Pointer(),
+			handle.Row.Pointer(),
+			handle.Column.Pointer(),
+			handle.Aggregation.Pointer(),
 		); err != nil {
-			return db.AnalysisResult{}, wrap.Error(err, "failed to scan result row")
+			return db.AnalysisResult{}, wrap.Error(err, "failed to scan clickhouse result row")
 		}
 
-		if err := analysisResult.ParseResultHandle(resultHandle); err != nil {
-			return db.AnalysisResult{}, wrap.Error(
-				err,
-				"failed to parse result from database",
-			)
+		if err := analysisResult.ParseResultHandle(handle); err != nil {
+			return db.AnalysisResult{}, err
 		}
 	}
 
