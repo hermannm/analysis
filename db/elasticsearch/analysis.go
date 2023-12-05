@@ -154,8 +154,8 @@ func createSplit(split db.Split) (types.Aggregations, error) {
 			}}, nil
 		}
 	case db.DataTypeDateTime:
-		if split.DateInterval != nil {
-			dateInterval, ok := dateIntervalToElastic(*split.DateInterval)
+		if !split.DateInterval.IsNone() {
+			dateInterval, ok := dateIntervalToElastic(split.DateInterval)
 			if !ok {
 				return types.Aggregations{}, errors.New("invalid date interval")
 			}

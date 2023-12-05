@@ -29,7 +29,7 @@ type Split struct {
 	// May only be present if DataType is FLOAT.
 	FloatInterval float64 `json:"floatInterval,omitempty"`
 	// May only be present if DataType is DATETIME.
-	DateInterval *DateInterval `json:"dateInterval,omitempty"`
+	DateInterval DateInterval `json:"dateInterval,omitempty"`
 }
 
 type AnalysisResult struct {

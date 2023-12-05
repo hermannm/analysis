@@ -81,11 +81,9 @@ func (query *QueryBuilder) WriteSplit(split db.Split) error {
 			return nil
 		}
 	case db.DataTypeDateTime:
-		if split.DateInterval != nil {
-			dateInterval := *split.DateInterval
-
+		if !split.DateInterval.IsNone() {
 			// https://clickhouse.com/docs/en/sql-reference/functions/date-time-functions#tostartofyear
-			switch dateInterval {
+			switch split.DateInterval {
 			case db.DateIntervalYear:
 				query.WriteString("toStartOfYear(")
 			case db.DateIntervalQuarter:
@@ -97,12 +95,12 @@ func (query *QueryBuilder) WriteSplit(split db.Split) error {
 			case db.DateIntervalDay:
 				query.WriteString("toStartOfDay(")
 			default:
-				return fmt.Errorf("unrecognized date interval type '%v'", dateInterval)
+				return fmt.Errorf("unrecognized date interval type '%v'", split.DateInterval)
 			}
 
 			query.WriteIdentifier(split.FieldName)
 
-			if dateInterval == db.DateIntervalWeek {
+			if split.DateInterval == db.DateIntervalWeek {
 				// Setting mode so that week starts on Mondays
 				// https://clickhouse.com/docs/en/sql-reference/functions/date-time-functions#toweek
 				query.WriteString(", 1)")

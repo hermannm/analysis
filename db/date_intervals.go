@@ -1,6 +1,8 @@
 package db
 
-import "hermannm.dev/enumnames"
+import (
+	"hermannm.dev/enumnames"
+)
 
 type DateInterval int8
 
@@ -20,6 +22,10 @@ var dateIntervalMap = enumnames.NewMap(map[DateInterval]string{
 	DateIntervalDay:     "DAY",
 })
 
+func (dateInterval DateInterval) IsNone() bool {
+	return dateInterval == 0
+}
+
 func (dateInterval DateInterval) IsValid() bool {
 	return dateIntervalMap.ContainsEnumValue(dateInterval)
 }
@@ -29,9 +35,15 @@ func (dateInterval DateInterval) String() string {
 }
 
 func (dateInterval DateInterval) MarshalJSON() ([]byte, error) {
+	if dateInterval.IsNone() {
+		return []byte("null"), nil
+	}
 	return dateIntervalMap.MarshalToNameJSON(dateInterval)
 }
 
-func (dateInterval *DateInterval) UnmarshalJSON(bytes []byte) error {
-	return dateIntervalMap.UnmarshalFromNameJSON(bytes, dateInterval)
+func (dateInterval *DateInterval) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		return nil
+	}
+	return dateIntervalMap.UnmarshalFromNameJSON(data, dateInterval)
 }
