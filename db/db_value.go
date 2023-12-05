@@ -14,31 +14,31 @@ type DBValue interface {
 	LessThan(value any) (less bool, err error)
 }
 
+// Implements all DBValue methods except LessThan, as that requires type-specific implementation.
 type dbValue[T comparable] struct {
-	value   T
-	compare comparator
+	value T
 }
 
-type comparator func(otherValue any) (less bool, err error)
+// Implements DBValue.LessThan for types that support the < operator.
+type orderedDBValue[T string | int64 | float64] struct {
+	dbValue[T]
+}
+
+// Implements DBValue.LessThan for time.Time, as we have to use Time.Before for it.
+type timeDBValue struct {
+	dbValue[time.Time]
+}
 
 func NewDBValue(dataType DataType) (DBValue, error) {
 	switch dataType {
 	case DataTypeText, DataTypeUUID:
-		dbValue := dbValue[string]{}
-		dbValue.compare = createComparator(&dbValue.value)
-		return &dbValue, nil
+		return &orderedDBValue[string]{}, nil
 	case DataTypeInt:
-		dbValue := dbValue[int64]{}
-		dbValue.compare = createComparator(&dbValue.value)
-		return &dbValue, nil
+		return &orderedDBValue[int64]{}, nil
 	case DataTypeFloat:
-		dbValue := dbValue[float64]{}
-		dbValue.compare = createComparator(&dbValue.value)
-		return &dbValue, nil
+		return &orderedDBValue[float64]{}, nil
 	case DataTypeTimestamp:
-		dbValue := dbValue[time.Time]{}
-		dbValue.compare = createTimeComparator(&dbValue.value)
-		return &dbValue, nil
+		return &timeDBValue{}, nil
 	default:
 		return nil, fmt.Errorf("unrecognized data type %v", dataType)
 	}
@@ -69,8 +69,18 @@ func (dbValue *dbValue[T]) Equals(value any) bool {
 	}
 }
 
-func (dbValue *dbValue[T]) LessThan(value any) (less bool, err error) {
-	return dbValue.compare(value)
+func (dbValue *orderedDBValue[T]) LessThan(value any) (less bool, err error) {
+	if value, ok := value.(T); ok {
+		return dbValue.value < value, nil
+	}
+	return false, fmt.Errorf("failed to convert '%v' to expected data type", value)
+}
+
+func (dbValue *timeDBValue) LessThan(value any) (less bool, err error) {
+	if value, ok := value.(time.Time); ok {
+		return dbValue.value.Before(value), nil
+	}
+	return false, fmt.Errorf("failed to convert '%v' to time.Time", value)
 }
 
 func (dbValue dbValue[T]) MarshalJSON() ([]byte, error) {
@@ -79,22 +89,4 @@ func (dbValue dbValue[T]) MarshalJSON() ([]byte, error) {
 
 func (dbValue *dbValue[T]) UnmarshalJSON(bytes []byte) error {
 	return json.Unmarshal(bytes, &dbValue.value)
-}
-
-func createComparator[T interface{ string | float64 | int64 }](value *T) comparator {
-	return func(otherValue any) (less bool, err error) {
-		if otherValue, ok := otherValue.(T); ok {
-			return *value < otherValue, nil
-		}
-		return false, fmt.Errorf("failed to convert '%v' to string", otherValue)
-	}
-}
-
-func createTimeComparator(value *time.Time) comparator {
-	return func(otherValue any) (less bool, err error) {
-		if otherValue, ok := otherValue.(time.Time); ok {
-			return value.Before(otherValue), nil
-		}
-		return false, fmt.Errorf("failed to convert '%v' to time.Time", otherValue)
-	}
 }

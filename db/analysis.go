@@ -182,7 +182,12 @@ func (analysisResult *AnalysisResult) InitializeColumnResult(
 		for i, column := range analysisResult.Columns {
 			less, err := columnValue.LessThan(column.FieldValue.Value())
 			if err != nil {
-				return 0, wrap.Error(err, "failed to compare column values")
+				return 0, wrap.Errorf(
+					err,
+					"failed to compare column values '%v' and '%v'",
+					columnValue.Value(),
+					column.FieldValue.Value(),
+				)
 			}
 
 			if (ascending && less) || (!ascending && !less) {
@@ -243,7 +248,12 @@ func (analysisResult *AnalysisResult) sortRowsByAggregationTotals() error {
 
 		less, err := row1.AggregationTotal.LessThan(row2Total)
 		if err != nil {
-			sortErr = err
+			sortErr = wrap.Errorf(
+				err,
+				"failed to compare aggregation totals '%v' and '%v'",
+				row1.AggregationTotal.Value(),
+				row2Total,
+			)
 		}
 
 		var result int
