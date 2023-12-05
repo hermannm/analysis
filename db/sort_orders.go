@@ -15,7 +15,7 @@ var sortOrderMap = enumnames.NewMap(map[SortOrder]string{
 })
 
 func (sortOrder SortOrder) IsValid() bool {
-	return sortOrderMap.ContainsEnumValue(sortOrder)
+	return sortOrderMap.ContainsKey(sortOrder)
 }
 
 func (sortOrder SortOrder) String() string {

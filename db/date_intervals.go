@@ -27,7 +27,7 @@ func (dateInterval DateInterval) IsNone() bool {
 }
 
 func (dateInterval DateInterval) IsValid() bool {
-	return dateIntervalMap.ContainsEnumValue(dateInterval)
+	return dateIntervalMap.ContainsKey(dateInterval)
 }
 
 func (dateInterval DateInterval) String() string {

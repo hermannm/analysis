@@ -25,7 +25,7 @@ var dataTypeMap = enumnames.NewMap(map[DataType]string{
 })
 
 func (dataType DataType) IsValid() bool {
-	return dataTypeMap.ContainsEnumValue(dataType)
+	return dataTypeMap.ContainsKey(dataType)
 }
 
 func (dataType DataType) IsValidForAggregation() error {

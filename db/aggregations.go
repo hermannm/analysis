@@ -23,7 +23,7 @@ var aggregationMap = enumnames.NewMap(map[AggregationKind]string{
 })
 
 func (kind AggregationKind) IsValid() bool {
-	return aggregationMap.ContainsEnumValue(kind)
+	return aggregationMap.ContainsKey(kind)
 }
 
 func (kind AggregationKind) String() string {
