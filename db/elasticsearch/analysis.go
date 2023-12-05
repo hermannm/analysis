@@ -149,8 +149,8 @@ func createSplit(split db.Split) (types.Aggregations, error) {
 		}
 	}
 
-	// Large size, to ensure we get enough values for aggregation
-	size := split.Limit*10 + 100
+	// Large size, to force Elasticsearch to include all values for aggregation
+	size := 1000000000
 
 	// If we get here, no interval was specified, so we want to use the 'Terms' bucket aggregation
 	// to group by unique values
