@@ -45,8 +45,12 @@ func (list *aggregatedValues[T]) Insert(index int, value any) (ok bool) {
 }
 
 func (list *aggregatedValues[T]) InsertZero(index int) {
-	var zero T
-	list.values = slices.Insert(list.values, index, zero)
+	if index <= len(list.values) {
+		var zero T
+		list.values = slices.Insert(list.values, index, zero)
+	} else {
+		list.AddZeroesUpToLength(index + 1)
+	}
 }
 
 func (list *aggregatedValues[T]) AddZeroesUpToLength(length int) {

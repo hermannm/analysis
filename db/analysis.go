@@ -203,10 +203,10 @@ func (analysisResult *AnalysisResult) InitializeColumnResult(
 		ColumnResult{FieldValue: columnValue},
 	)
 
-	// Go through all rows before the one currently being processed, to insert 0 at the new column
-	// index.
-	for i := 0; i < len(analysisResult.Rows)-1; i++ {
-		analysisResult.Rows[i].AggregationsByColumn.InsertZero(newColumnIndex)
+	// Inserts 0 at the new column index in all existing rows, to ensure that there is an aggregated
+	// value for every column.
+	for _, row := range analysisResult.Rows {
+		row.AggregationsByColumn.InsertZero(newColumnIndex)
 	}
 
 	return newColumnIndex, nil
