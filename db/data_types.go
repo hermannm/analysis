@@ -12,16 +12,16 @@ const (
 	DataTypeText DataType = iota + 1
 	DataTypeInt
 	DataTypeFloat
-	DataTypeTimestamp
+	DataTypeDateTime
 	DataTypeUUID
 )
 
 var dataTypeMap = enumnames.NewMap(map[DataType]string{
-	DataTypeText:      "TEXT",
-	DataTypeInt:       "INTEGER",
-	DataTypeFloat:     "FLOAT",
-	DataTypeTimestamp: "TIMESTAMP",
-	DataTypeUUID:      "UUID",
+	DataTypeText:     "TEXT",
+	DataTypeInt:      "INTEGER",
+	DataTypeFloat:    "FLOAT",
+	DataTypeDateTime: "DATETIME",
+	DataTypeUUID:     "UUID",
 })
 
 func (dataType DataType) IsValid() bool {

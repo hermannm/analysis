@@ -28,7 +28,7 @@ type Split struct {
 	IntegerInterval int `json:"integerInterval,omitempty"`
 	// May only be present if DataType is FLOAT.
 	FloatInterval float64 `json:"floatInterval,omitempty"`
-	// May only be present if DataType is TIMESTAMP.
+	// May only be present if DataType is DATETIME.
 	DateInterval *DateInterval `json:"dateInterval,omitempty"`
 }
 

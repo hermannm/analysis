@@ -80,7 +80,7 @@ func (query *QueryBuilder) WriteSplit(split db.Split) error {
 			query.WriteByte(')')
 			return nil
 		}
-	case db.DataTypeTimestamp:
+	case db.DataTypeDateTime:
 		if split.DateInterval != nil {
 			dateInterval := *split.DateInterval
 

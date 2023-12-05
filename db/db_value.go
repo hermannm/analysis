@@ -37,7 +37,7 @@ func NewDBValue(dataType DataType) (DBValue, error) {
 		return &orderedDBValue[int64]{}, nil
 	case DataTypeFloat:
 		return &orderedDBValue[float64]{}, nil
-	case DataTypeTimestamp:
+	case DataTypeDateTime:
 		return &timeDBValue{}, nil
 	default:
 		return nil, fmt.Errorf("unrecognized data type %v", dataType)

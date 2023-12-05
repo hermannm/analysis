@@ -69,7 +69,7 @@ func deduceDataTypeFromField(field string) (deducedType DataType, isBlank bool) 
 		return DataTypeFloat, false
 	}
 	if _, err := time.Parse(time.RFC3339, field); err == nil {
-		return DataTypeTimestamp, false
+		return DataTypeDateTime, false
 	}
 	if _, err := uuid.Parse(field); err == nil {
 		return DataTypeUUID, false
@@ -147,7 +147,7 @@ func convertField(field string, column Column) (convertedField any, err error) {
 		return strconv.ParseInt(field, 10, 64)
 	case DataTypeFloat:
 		return strconv.ParseFloat(field, 64)
-	case DataTypeTimestamp:
+	case DataTypeDateTime:
 		value, err := time.Parse(time.RFC3339, field)
 		if err == nil {
 			return value.UnixMilli(), nil

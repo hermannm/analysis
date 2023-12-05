@@ -39,7 +39,7 @@ func dataTypeToElasticProperty(dataType db.DataType) (types.Property, error) {
 		return types.NewIntegerNumberProperty(), nil
 	case db.DataTypeFloat:
 		return types.NewFloatNumberProperty(), nil
-	case db.DataTypeTimestamp:
+	case db.DataTypeDateTime:
 		return types.NewDateProperty(), nil
 	case db.DataTypeUUID:
 		return types.NewKeywordProperty(), nil

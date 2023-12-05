@@ -153,7 +153,7 @@ func createSplit(split db.Split) (types.Aggregations, error) {
 				/* Order:    sortOrder, */
 			}}, nil
 		}
-	case db.DataTypeTimestamp:
+	case db.DataTypeDateTime:
 		if split.DateInterval != nil {
 			dateInterval, ok := dateIntervalToElastic(*split.DateInterval)
 			if !ok {
@@ -317,7 +317,7 @@ func setResultValue(target db.DBValue, value any, dataType db.DataType) error {
 		if float, isFloat := value.(float64); isFloat {
 			value = int64(float)
 		}
-	case db.DataTypeTimestamp:
+	case db.DataTypeDateTime:
 		if float, isFloat := value.(float64); isFloat {
 			// Elasticsearch stores dates as milliseconds since the Unix epoch:
 			// https://www.elastic.co/guide/en/elasticsearch/reference/8.10/date.html
