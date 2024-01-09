@@ -9,7 +9,7 @@ import (
 
 	"github.com/elastic/go-elasticsearch/v8/typedapi/core/search"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
-	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/gappolicy"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/sortorder"
 	"hermannm.dev/analysis/db"
 	"hermannm.dev/wrap"
 )
@@ -51,10 +51,8 @@ type analysisQueryResponse struct {
 	Aggregations struct {
 		RowSplit struct {
 			Buckets []struct {
-				Key any `json:"key"`
-				// Maps field name to total of aggregated values
-				AggregationTotal map[string]any `json:"aggregation_total"`
-				ColumnSplit      struct {
+				Key         any `json:"key"`
+				ColumnSplit struct {
 					Buckets []struct {
 						Key any `json:"key"`
 						// Maps field name to the aggregated value
@@ -75,28 +73,22 @@ func (elastic ElasticsearchDB) buildAnalysisQueryRequest(
 		return nil, wrap.Error(err, "failed to create aggregation")
 	}
 
-	rowSplit, err := createSplit(analysis.RowSplit)
+	rowSplit, err := createSplit(analysis.RowSplit, aggregationTotalName)
 	if err != nil {
 		return nil, wrap.Error(err, "failed to create row split")
 	}
 
-	columnSplit, err := createSplit(analysis.ColumnSplit)
+	columnSplit, err := createSplit(analysis.ColumnSplit, "_key")
 	if err != nil {
 		return nil, wrap.Error(err, "failed to create column split")
-	}
-
-	sort, err := createSortByAggregationTotals(analysis.RowSplit)
-	if err != nil {
-		return nil, wrap.Error(err, "failed to create aggregation sort")
 	}
 
 	columnSplit.Aggregations = map[string]types.Aggregations{
 		aggregationName: analysisAggregation,
 	}
 	rowSplit.Aggregations = map[string]types.Aggregations{
-		columnSplitName:                columnSplit,
-		aggregationTotalName:           analysisAggregation,
-		aggregationTotalName + "_sort": sort,
+		columnSplitName:      columnSplit,
+		aggregationTotalName: analysisAggregation,
 	}
 	aggregations := map[string]types.Aggregations{
 		rowSplitName: rowSplit,
@@ -130,8 +122,16 @@ func createAnalysisAggregation(aggregation db.Aggregation) (types.Aggregations, 
 	}
 }
 
-func createSplit(split db.Split) (types.Aggregations, error) {
+func createSplit(split db.Split, orderKey string) (types.Aggregations, error) {
 	field := split.FieldName
+
+	sortOrder, ok := sortOrderToElastic(split.SortOrder)
+	if !ok {
+		return types.Aggregations{}, fmt.Errorf("invalid sort order '%v'", split.SortOrder)
+	}
+	orderField := map[string]sortorder.SortOrder{
+		orderKey: sortOrder,
+	}
 
 	switch split.DataType {
 	case db.DataTypeInt, db.DataTypeFloat:
@@ -154,6 +154,7 @@ func createSplit(split db.Split) (types.Aggregations, error) {
 			return types.Aggregations{Histogram: &types.HistogramAggregation{
 				Field:    &field,
 				Interval: &interval,
+				Order:    orderField,
 			}}, nil
 		}
 	case db.DataTypeDateTime:
@@ -168,39 +169,19 @@ func createSplit(split db.Split) (types.Aggregations, error) {
 			return types.Aggregations{DateHistogram: &types.DateHistogramAggregation{
 				Field:            &field,
 				CalendarInterval: &dateInterval,
+				Order:            orderField,
 			}}, nil
 		}
 	}
 
-	// Large size, to force Elasticsearch to include all values for aggregation
-	size := 10000
-
-	// If we get here, no interval was specified, so we want to use the 'Terms' bucket aggregation
-	// to group by unique values
+	// If we get here, no interval was specified, so we want to use the Terms bucket aggregation to
+	// group by unique values
 	// https://www.elastic.co/guide/en/elasticsearch/reference/8.10/search-aggregations-bucket-terms-aggregation.html
 	return types.Aggregations{Terms: &types.TermsAggregation{
 		Field: &field,
-		Size:  &size,
+		Size:  &split.Limit,
+		Order: orderField,
 	}}, nil
-}
-
-func createSortByAggregationTotals(rowSplit db.Split) (types.Aggregations, error) {
-	sortOrder, ok := sortOrderToElastic(rowSplit.SortOrder)
-	if !ok {
-		return types.Aggregations{}, errors.New("invalid sort order")
-	}
-
-	return types.Aggregations{
-		BucketSort: &types.BucketSortAggregation{
-			Sort: []types.SortCombinations{
-				types.SortOptions{SortOptions: map[string]types.FieldSort{
-					aggregationTotalName: {Order: &sortOrder},
-				}},
-			},
-			Size:      &rowSplit.Limit,
-			GapPolicy: &gappolicy.Insertzeros,
-		},
-	}, nil
 }
 
 func executeAnalysisQueryRequest(
