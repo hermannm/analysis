@@ -177,10 +177,20 @@ func createSplit(split db.Split, orderKey string) (types.Aggregations, error) {
 	// If we get here, no interval was specified, so we want to use the Terms bucket aggregation to
 	// group by unique values
 	// https://www.elastic.co/guide/en/elasticsearch/reference/8.10/search-aggregations-bucket-terms-aggregation.html
+
+	// By default, Elasticsearch only fetches the top (size * 1.5 + 10) terms from each shard
+	// (https://www.elastic.co/guide/en/elasticsearch/reference/8.10/search-aggregations-bucket-terms-aggregation.html#search-aggregations-bucket-terms-aggregation-shard-size)
+	//
+	// This can lead to some terms which _are_ part of the global top X terms, but not the top X
+	// terms on a specific shard, not being included. Thus, we set a larger shard size to reduce the
+	// chance of incorrect results.
+	shardSize := split.Limit*10 + 100
+
 	return types.Aggregations{Terms: &types.TermsAggregation{
-		Field: &field,
-		Size:  &split.Limit,
-		Order: orderField,
+		Field:     &field,
+		Size:      &split.Limit,
+		ShardSize: &shardSize,
+		Order:     orderField,
 	}}, nil
 }
 
