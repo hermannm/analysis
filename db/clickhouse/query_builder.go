@@ -16,6 +16,9 @@ type QueryBuilder struct {
 	parameters clickhouse.Parameters
 }
 
+// Returns a child context with the query builder's parameters added.
+// See clickhouse-go example:
+// https://github.com/ClickHouse/clickhouse-go/blob/ead3da532083960a02af9df734eeefb06af5d43b/examples/clickhouse_api/query_parameters.go#L37
 func (query *QueryBuilder) WithParameters(ctx context.Context) context.Context {
 	return clickhouse.Context(ctx, clickhouse.WithParameters(query.parameters))
 }
