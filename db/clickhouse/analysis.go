@@ -14,12 +14,12 @@ func (clickhouse ClickHouseDB) RunAnalysisQuery(
 	analysis db.AnalysisQuery,
 	table string,
 ) (db.AnalysisResult, error) {
-	queryString, err := buildAnalysisQueryString(analysis, table)
+	query, err := translateAnalysisQuery(analysis, table)
 	if err != nil {
 		return db.AnalysisResult{}, wrap.Error(err, "failed to parse query")
 	}
 
-	rows, err := clickhouse.conn.Query(ctx, queryString)
+	rows, err := clickhouse.conn.Query(query.WithParameters(ctx), query.String())
 	if err != nil {
 		return db.AnalysisResult{}, wrap.Error(err, "failed to execute query against ClickHouse")
 	}
@@ -32,58 +32,49 @@ func (clickhouse ClickHouseDB) RunAnalysisQuery(
 	return analysisResult, nil
 }
 
-func buildAnalysisQueryString(analysis db.AnalysisQuery, table string) (string, error) {
+func translateAnalysisQuery(analysis db.AnalysisQuery, table string) (*QueryBuilder, error) {
 	if analysis.RowSplit.Limit == 0 || analysis.ColumnSplit.Limit == 0 {
-		return "", errors.New("column/row split limit cannot be 0")
-	}
-
-	if err := ValidateIdentifiers(
-		table,
-		analysis.RowSplit.FieldName,
-		analysis.ColumnSplit.FieldName,
-		analysis.Aggregation.FieldName,
-	); err != nil {
-		return "", wrap.Error(err, "invalid table/field name in query")
+		return nil, errors.New("column/row split limit cannot be 0")
 	}
 
 	var query QueryBuilder
 	query.WriteString("SELECT ")
 
 	if err := query.WriteSplit(analysis.RowSplit); err != nil {
-		return "", wrap.Error(err, "failed to parse query row split")
+		return nil, wrap.Error(err, "failed to parse query row split")
 	}
 	query.WriteString(" AS row_split, ")
 
 	if err := query.WriteSplit(analysis.ColumnSplit); err != nil {
-		return "", wrap.Error(err, "failed to parse query column split")
+		return nil, wrap.Error(err, "failed to parse query column split")
 	}
 	query.WriteString(" AS column_split, ")
 
 	if err := query.WriteAggregation(analysis.Aggregation); err != nil {
-		return "", err
+		return nil, err
 	}
 	query.WriteString(" AS aggregation ")
 
 	query.WriteString("FROM ")
-	query.WriteIdentifier(table)
+	query.AddIdentifier(table)
 
 	// WHERE clause to get the top N rows by aggregation totals
 	query.WriteString(" WHERE row_split IN (SELECT ")
-	query.WriteIdentifier(analysis.RowSplit.FieldName)
+	query.AddIdentifier(analysis.RowSplit.FieldName)
 	query.WriteString(" FROM ")
-	query.WriteIdentifier(table)
+	query.AddIdentifier(table)
 	query.WriteString(" GROUP BY ")
-	query.WriteIdentifier(analysis.RowSplit.FieldName)
+	query.AddIdentifier(analysis.RowSplit.FieldName)
 	query.WriteString(" ORDER BY ")
-	query.WriteAggregation(analysis.Aggregation) // err checked above
+	query.WriteAggregation(analysis.Aggregation) // Error checked above
 	query.WriteString(" DESC")
 	query.WriteString(" LIMIT ")
-	query.WriteInt(analysis.RowSplit.Limit)
+	query.AddIntParameter(analysis.RowSplit.Limit)
 	query.WriteByte(')')
 
 	query.WriteString(" GROUP BY column_split, row_split")
 
-	return query.String(), nil
+	return &query, nil
 }
 
 func parseAnalysisResultRows(

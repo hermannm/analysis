@@ -42,18 +42,14 @@ func (clickhouse ClickHouseDB) DropTable(
 	ctx context.Context,
 	table string,
 ) (alreadyDropped bool, err error) {
-	if err := ValidateIdentifier(table); err != nil {
-		return false, wrap.Error(err, "invalid table name")
-	}
-
 	var query QueryBuilder
 	query.WriteString("DROP TABLE ")
-	query.WriteIdentifier(table)
+	query.AddIdentifier(table)
 
 	// See https://github.com/ClickHouse/ClickHouse/blob/bd387f6d2c30f67f2822244c0648f2169adab4d3/src/Common/ErrorCodes.cpp#L66
 	const clickhouseUnknownTableErrorCode = 60
 
-	if err := clickhouse.conn.Exec(ctx, query.String()); err != nil {
+	if err := clickhouse.conn.Exec(query.WithParameters(ctx), query.String()); err != nil {
 		clickHouseErr, isClickHouseErr := err.(*proto.Exception)
 		if isClickHouseErr && clickHouseErr.Code == clickhouseUnknownTableErrorCode {
 			return true, nil

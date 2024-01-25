@@ -5,13 +5,23 @@ import (
 	"hermannm.dev/enumnames"
 )
 
+// ClickHouse data types.
 // See https://clickhouse.com/docs/en/sql-reference/data-types
+const (
+	typeInt64      = "Int64"
+	typeFloat64    = "Float64"
+	typeDateTime   = "DateTime64(3)"
+	typeUUID       = "UUID"
+	typeString     = "String"
+	typeIdentifier = "Identifier"
+)
+
 var clickhouseDataTypes = enumnames.NewMap(map[db.DataType]string{
-	db.DataTypeInt:      "Int64",
-	db.DataTypeFloat:    "Float64",
-	db.DataTypeDateTime: "DateTime64(3)",
-	db.DataTypeUUID:     "UUID",
-	db.DataTypeText:     "String",
+	db.DataTypeInt:      typeInt64,
+	db.DataTypeFloat:    typeFloat64,
+	db.DataTypeDateTime: typeDateTime,
+	db.DataTypeUUID:     typeUUID,
+	db.DataTypeText:     typeString,
 })
 
 // See https://clickhouse.com/docs/en/sql-reference/statements/select/order-by

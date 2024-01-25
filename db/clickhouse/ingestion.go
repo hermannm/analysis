@@ -10,20 +10,15 @@ import (
 )
 
 func (clickhouse ClickHouseDB) CreateTable(ctx context.Context, schema db.TableSchema) error {
-	if err := ValidateIdentifier(schema.TableName); err != nil {
-		return wrap.Error(err, "invalid table name")
-	}
-
 	var query QueryBuilder
 	query.WriteString("CREATE TABLE ")
-	query.WriteIdentifier(schema.TableName)
+	query.AddIdentifier(schema.TableName)
 	query.WriteString(" (`id` UUID, ")
 
 	for i, column := range schema.Columns {
-		if err := ValidateIdentifier(column.Name); err != nil {
+		if err := query.WriteQuotedIdentifier(column.Name); err != nil {
 			return wrap.Error(err, "invalid column name")
 		}
-		query.WriteIdentifier(column.Name)
 		query.WriteByte(' ')
 
 		dataType, ok := clickhouseDataTypes.GetName(column.DataType)
@@ -45,7 +40,7 @@ func (clickhouse ClickHouseDB) CreateTable(ctx context.Context, schema db.TableS
 	query.WriteString(" ENGINE = MergeTree()")
 	query.WriteString(" PRIMARY KEY (id)")
 
-	if err := clickhouse.conn.Exec(ctx, query.String()); err != nil {
+	if err := clickhouse.conn.Exec(query.WithParameters(ctx), query.String()); err != nil {
 		return wrap.Errorf(
 			err,
 			"ClickHouse table creation query failed for table '%s'",
@@ -65,14 +60,11 @@ func (clickhouse ClickHouseDB) UpdateTableData(
 	schema db.TableSchema,
 	data db.DataSource,
 ) error {
-	if err := ValidateIdentifier(schema.TableName); err != nil {
-		return wrap.Error(err, "invalid table name")
-	}
-
 	var query QueryBuilder
 	query.WriteString("INSERT INTO ")
-	query.WriteIdentifier(schema.TableName)
+	query.AddIdentifier(schema.TableName)
 	queryString := query.String()
+	ctx = query.WithParameters(ctx)
 
 	fieldsPerRow := len(schema.Columns) + 1 // +1 for id field
 
