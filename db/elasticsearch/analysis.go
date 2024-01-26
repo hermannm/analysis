@@ -19,17 +19,14 @@ func (elastic ElasticsearchDB) RunAnalysisQuery(
 	analysis db.AnalysisQuery,
 	table string,
 ) (db.AnalysisResult, error) {
-	request, err := elastic.buildAnalysisQueryRequest(analysis, table)
+	query, err := elastic.translateAnalysisQuery(analysis, table)
 	if err != nil {
 		return db.AnalysisResult{}, wrap.Error(err, "failed to parse query")
 	}
 
-	response, err := executeAnalysisQueryRequest(ctx, request)
+	response, err := executeAnalysisQuery(ctx, query)
 	if err != nil {
-		return db.AnalysisResult{}, wrapElasticError(
-			err,
-			"failed to execute query against Elasticsearch",
-		)
+		return db.AnalysisResult{}, wrapElasticError(err, "failed to execute query")
 	}
 
 	analysisResult, err := parseAnalysisQueryResponse(response, analysis)
@@ -64,7 +61,7 @@ type analysisQueryResponse struct {
 	} `json:"aggregations"`
 }
 
-func (elastic ElasticsearchDB) buildAnalysisQueryRequest(
+func (elastic ElasticsearchDB) translateAnalysisQuery(
 	analysis db.AnalysisQuery,
 	table string,
 ) (*search.Search, error) {
@@ -194,13 +191,13 @@ func createSplit(split db.Split, orderKey string) (types.Aggregations, error) {
 	}}, nil
 }
 
-func executeAnalysisQueryRequest(
+func executeAnalysisQuery(
 	ctx context.Context,
-	request *search.Search,
+	query *search.Search,
 ) (analysisQueryResponse, error) {
-	response, err := request.Perform(ctx)
+	response, err := query.Perform(ctx)
 	if err != nil {
-		return analysisQueryResponse{}, wrap.Error(err, "failed to send query request")
+		return analysisQueryResponse{}, wrap.Error(err, "failed to send query to Elasticsearch")
 	}
 	defer response.Body.Close()
 
