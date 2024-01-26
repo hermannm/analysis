@@ -15,7 +15,7 @@ import (
 func (elastic ElasticsearchDB) CreateTable(ctx context.Context, schema db.TableSchema) error {
 	mappings, err := schemaToElasticMappings(schema)
 	if err != nil {
-		return wrap.Error(err, "failed to translate table schema to elastic mappings")
+		return wrap.Error(err, "failed to translate table schema to Elasticsearch mappings")
 	}
 
 	_, err = elastic.client.Indices.Create(schema.TableName).Mappings(mappings).Do(ctx)
