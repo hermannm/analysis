@@ -30,7 +30,7 @@ func (elastic ElasticsearchDB) CreateTable(ctx context.Context, schema db.TableS
 	return nil
 }
 
-func (elastic ElasticsearchDB) UpdateTableData(
+func (elastic ElasticsearchDB) InsertTableData(
 	ctx context.Context,
 	schema db.TableSchema,
 	data db.DataSource,

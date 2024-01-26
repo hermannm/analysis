@@ -55,7 +55,7 @@ func (clickhouse ClickHouseDB) CreateTable(ctx context.Context, schema db.TableS
 // https://clickhouse.com/docs/en/cloud/bestpractices/bulk-inserts
 const BatchInsertSize = 10000
 
-func (clickhouse ClickHouseDB) UpdateTableData(
+func (clickhouse ClickHouseDB) InsertTableData(
 	ctx context.Context,
 	schema db.TableSchema,
 	data db.DataSource,
