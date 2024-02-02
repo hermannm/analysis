@@ -35,6 +35,10 @@ func NewClickHouseDB(config config.Config) (ClickHouseDB, error) {
 		return ClickHouseDB{}, wrap.Error(err, "failed to connect to ClickHouse")
 	}
 
+	if err := conn.Ping(context.Background()); err != nil {
+		return ClickHouseDB{}, wrap.Error(err, "failed to ping ClickHouse - is it running?")
+	}
+
 	return ClickHouseDB{conn: conn}, nil
 }
 

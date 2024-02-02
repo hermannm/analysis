@@ -2,6 +2,7 @@ package elasticsearch
 
 import (
 	"context"
+	"errors"
 
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
@@ -29,6 +30,13 @@ func NewElasticsearchDB(config config.Config) (ElasticsearchDB, error) {
 	untypedClient, err := elasticsearch.NewClient(elasticConfig)
 	if err != nil {
 		return ElasticsearchDB{}, wrap.Error(err, "failed to connect untyped API to Elasticsearch")
+	}
+
+	running, err := client.Ping().Do(context.Background())
+	if err != nil {
+		return ElasticsearchDB{}, wrap.Error(err, "failed to ping Elasticsearch - is it running?")
+	} else if !running {
+		return ElasticsearchDB{}, errors.New("failed to ping Elasticsearch - is it running?")
 	}
 
 	return ElasticsearchDB{client: client, untypedClient: untypedClient}, nil
