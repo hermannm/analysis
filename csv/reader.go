@@ -68,12 +68,19 @@ func (reader *Reader) ReadHeaderRow() (row []string, err error) {
 	return row, nil
 }
 
-func (reader *Reader) ResetReadPosition() error {
+func (reader *Reader) ResetReadPosition(skipHeaderRow bool) error {
 	if _, err := reader.file.Seek(0, io.SeekStart); err != nil {
 		return err
 	}
 
 	reader.currentRow = 0
 	reader.inner = newInnerReader(reader.file, reader.inner.Comma)
+
+	if skipHeaderRow {
+		if _, err := reader.ReadHeaderRow(); err != nil {
+			return wrap.Error(err, "failed to skip CSV header row")
+		}
+	}
+
 	return nil
 }
