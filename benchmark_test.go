@@ -54,19 +54,8 @@ func TestMain(m *testing.M) {
 }
 
 func BenchmarkInsertTableData(b *testing.B) {
-	testFile, err := testData.Open("test-data.csv")
-	if err != nil {
-		b.Fatal(wrap.Error(err, "failed to open test file"))
-	}
-	defer testFile.Close()
-
-	reader, err := csv.NewReader(testFile.(io.ReadSeeker), true)
-	if err != nil {
-		b.Fatal(wrap.Error(err, "failed to create reader for CSV test file"))
-	}
-
 	schema := newSchema("insert_data_test")
-	withTestTable(b, schema, func() {
+	withTestTable(b, schema, func(reader *csv.Reader) {
 		for i := 0; i < b.N; i++ {
 			if err := database.InsertTableData(context.Background(), schema, reader); err != nil {
 				b.Fatal(err)
@@ -104,7 +93,7 @@ func BenchmarkRunAnalysisQuery(b *testing.B) {
 	}
 
 	schema := newSchema("run_query_test")
-	withTestTable(b, schema, func() {
+	withTestTable(b, schema, func(*csv.Reader) {
 		for i := 0; i < b.N; i++ {
 			if _, err := database.RunAnalysisQuery(
 				context.Background(),
@@ -139,7 +128,7 @@ func newSchema(name string) db.TableSchema {
 	return db.TableSchema{TableName: name, Columns: testDataColumns}
 }
 
-func withTestTable(b *testing.B, schema db.TableSchema, testFunc func()) {
+func withTestTable(b *testing.B, schema db.TableSchema, testFunc func(*csv.Reader)) {
 	if err := database.CreateTable(context.Background(), schema); err != nil {
 		b.Fatal(wrap.Error(err, "failed to create table for data insertion test"))
 	}
@@ -149,7 +138,25 @@ func withTestTable(b *testing.B, schema db.TableSchema, testFunc func()) {
 		}
 	}()
 
+	testFile, err := testData.Open("test-data.csv")
+	if err != nil {
+		b.Fatal(wrap.Error(err, "failed to open test file"))
+	}
+	defer testFile.Close()
+
+	reader, err := csv.NewReader(testFile.(io.ReadSeeker), true)
+	if err != nil {
+		b.Fatal(wrap.Error(err, "failed to create reader for CSV test file"))
+	}
+
+	if err := database.InsertTableData(context.Background(), schema, reader); err != nil {
+		b.Fatal(wrap.Errorf(err, "failed to insert test data in table '%s'", schema.TableName))
+	}
+	if err := reader.ResetReadPosition(true); err != nil {
+		b.Fatal(wrap.Error(err, "failed to reset read position in CSV test file"))
+	}
+
 	b.ResetTimer()
-	testFunc()
+	testFunc(reader)
 	b.StopTimer()
 }
