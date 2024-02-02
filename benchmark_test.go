@@ -75,8 +75,8 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func BenchmarkInsertTableData(b *testing.B) {
-	schema := newSchema("insert_data_test")
+func BenchmarkIngestion(b *testing.B) {
+	schema := newSchema("ingestion_test")
 	withTestTable(b, schema, func(reader *csv.Reader) {
 		for i := 0; i < b.N; i++ {
 			if err := database.InsertTableData(context.Background(), schema, reader); err != nil {
@@ -92,8 +92,8 @@ func BenchmarkInsertTableData(b *testing.B) {
 	})
 }
 
-func BenchmarkRunAnalysisQuery(b *testing.B) {
-	schema := newSchema("run_query_test")
+func BenchmarkQuery(b *testing.B) {
+	schema := newSchema("query_test")
 	withTestTable(b, schema, func(*csv.Reader) {
 		for i := 0; i < b.N; i++ {
 			if _, err := database.RunAnalysisQuery(
@@ -107,7 +107,7 @@ func BenchmarkRunAnalysisQuery(b *testing.B) {
 	})
 }
 
-func BenchmarkConcurrentAnalysisQueries(b *testing.B) {
+func BenchmarkParallelQueries(b *testing.B) {
 	const concurrentQueries = 1024
 
 	schema := newSchema("parallel_queries_test")
