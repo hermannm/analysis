@@ -53,7 +53,7 @@ func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Req
 		return
 	}
 
-	if err := api.db.InsertTableData(req.Context(), schema, csvReader); err != nil {
+	if err := api.db.IngestData(req.Context(), csvReader, schema); err != nil {
 		sendServerError(res, err, "failed to insert CSV data after creating table")
 		return
 	}
@@ -62,7 +62,7 @@ func (api AnalysisAPI) CreateTableFromCSV(res http.ResponseWriter, req *http.Req
 // Expects:
 //   - multipart form field 'tableSchema': JSON-encoded db.TableSchema
 //   - multipart form field 'csvFile': CSV file to read data from
-func (api AnalysisAPI) InsertDataFromCSV(res http.ResponseWriter, req *http.Request) {
+func (api AnalysisAPI) IngestDataFromCSV(res http.ResponseWriter, req *http.Request) {
 	schema, err := getTableSchemaFromRequest(req)
 	if err != nil {
 		sendClientError(res, err, "")
@@ -82,7 +82,7 @@ func (api AnalysisAPI) InsertDataFromCSV(res http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	if err := api.db.InsertTableData(req.Context(), schema, csvReader); err != nil {
+	if err := api.db.IngestData(req.Context(), csvReader, schema); err != nil {
 		sendServerError(res, err, "failed to insert data from uploaded CSV")
 		return
 	}

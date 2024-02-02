@@ -79,7 +79,7 @@ func BenchmarkIngestion(b *testing.B) {
 	schema := newSchema("ingestion_test")
 	withTestTable(b, schema, func(reader *csv.Reader) {
 		for i := 0; i < b.N; i++ {
-			if err := database.InsertTableData(context.Background(), schema, reader); err != nil {
+			if err := database.IngestData(context.Background(), reader, schema); err != nil {
 				b.Fatal(err)
 			}
 
@@ -173,7 +173,7 @@ func withTestTable(b *testing.B, schema db.TableSchema, testFunc func(*csv.Reade
 		b.Fatal(wrap.Error(err, "failed to create reader for CSV test file"))
 	}
 
-	if err := database.InsertTableData(context.Background(), schema, reader); err != nil {
+	if err := database.IngestData(context.Background(), reader, schema); err != nil {
 		b.Fatal(wrap.Errorf(err, "failed to insert test data in table '%s'", schema.TableName))
 	}
 	if err := reader.ResetReadPosition(true); err != nil {

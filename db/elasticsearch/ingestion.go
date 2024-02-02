@@ -30,10 +30,10 @@ func (elastic ElasticsearchDB) CreateTable(ctx context.Context, schema db.TableS
 	return nil
 }
 
-func (elastic ElasticsearchDB) InsertTableData(
+func (elastic ElasticsearchDB) IngestData(
 	ctx context.Context,
-	schema db.TableSchema,
 	data db.DataSource,
+	schema db.TableSchema,
 ) error {
 	ctx, cancel := context.WithCancelCause(ctx)
 

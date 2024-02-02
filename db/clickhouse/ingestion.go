@@ -55,10 +55,10 @@ func (clickhouse ClickHouseDB) CreateTable(ctx context.Context, schema db.TableS
 // https://clickhouse.com/docs/en/cloud/bestpractices/bulk-inserts
 const BatchInsertSize = 10000
 
-func (clickhouse ClickHouseDB) InsertTableData(
+func (clickhouse ClickHouseDB) IngestData(
 	ctx context.Context,
-	schema db.TableSchema,
 	data db.DataSource,
+	schema db.TableSchema,
 ) error {
 	var query QueryBuilder
 	query.WriteString("INSERT INTO ")

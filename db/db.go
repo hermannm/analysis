@@ -11,7 +11,7 @@ type AnalysisDB interface {
 
 	CreateTable(ctx context.Context, schema TableSchema) error
 
-	InsertTableData(ctx context.Context, schema TableSchema, data DataSource) error
+	IngestData(ctx context.Context, data DataSource, schema TableSchema) error
 
 	DropTable(ctx context.Context, table string) (alreadyDropped bool, err error)
 
