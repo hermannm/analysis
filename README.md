@@ -24,21 +24,21 @@ Certain files in the `api`, `clickhouse` and `elasticsearch` packages follow a c
 
 ## Local setup
 
-1. Create a `.env` file by copying `.env.example`:
+1. Install Go (version 1.21.1 or later): https://go.dev/dl/
+
+2. Install Docker: https://docs.docker.com/desktop/
+
+3. Clone the repository:
 
    ```
-   cp .env.example .env
+   git clone https://github.com/hermannm/analysis.git
    ```
 
-   - On Windows:
+4. Create a `.env` file by copying `.env.example` at the root of the repository
 
-     ```
-     copy .env.example .env
-     ```
+5. Set the `DATABASE` field in the `.env` file to either `clickhouse` or `elasticsearch`
 
-2. Set the `DATABASE` field in the `.env` file to either `clickhouse` or `elasticsearch`
-
-3. Start the database with [Docker](https://www.docker.com/products/docker-desktop/)
+6. Start the database with [Docker](https://www.docker.com/products/docker-desktop/)
 
    - For ClickHouse:
 
@@ -52,8 +52,13 @@ Certain files in the `api`, `clickhouse` and `elasticsearch` packages follow a c
      docker compose up elasticsearch
      ```
 
-4. Run the API server with [Go](https://go.dev/):
+7. Run the server:
 
    ```
    go run .
    ```
+
+## Acknowledgements
+
+- [Ignite](https://www.ignite.no/) for their technical expertise and guidance provided during the
+  development process
