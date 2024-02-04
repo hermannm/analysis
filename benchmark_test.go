@@ -6,7 +6,6 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"runtime"
 	"testing"
 
 	"hermannm.dev/analysis/config"
@@ -30,27 +29,6 @@ var (
 		{Name: "invoiceNumber", DataType: db.DataTypeInt, Optional: false},
 		{Name: "responsibleName", DataType: db.DataTypeText, Optional: false},
 		{Name: "supplierId", DataType: db.DataTypeUUID, Optional: false},
-	}
-
-	testQuery = db.AnalysisQuery{
-		Aggregation: db.Aggregation{
-			Kind:      db.AggregationSum,
-			FieldName: "value",
-			DataType:  db.DataTypeInt,
-		},
-		RowSplit: db.Split{
-			FieldName: "supplierId",
-			DataType:  db.DataTypeUUID,
-			SortOrder: db.SortOrderDescending,
-			Limit:     10,
-		},
-		ColumnSplit: db.Split{
-			FieldName:    "date",
-			DataType:     db.DataTypeDateTime,
-			SortOrder:    db.SortOrderAscending,
-			Limit:        4,
-			DateInterval: db.DateIntervalQuarter,
-		},
 	}
 )
 
@@ -92,40 +70,38 @@ func BenchmarkIngestion(b *testing.B) {
 }
 
 func BenchmarkQuery(b *testing.B) {
+	query := db.AnalysisQuery{
+		Aggregation: db.Aggregation{
+			Kind:      db.AggregationSum,
+			FieldName: "value",
+			DataType:  db.DataTypeInt,
+		},
+		RowSplit: db.Split{
+			FieldName: "supplierId",
+			DataType:  db.DataTypeUUID,
+			SortOrder: db.SortOrderDescending,
+			Limit:     10,
+		},
+		ColumnSplit: db.Split{
+			FieldName:    "date",
+			DataType:     db.DataTypeDateTime,
+			SortOrder:    db.SortOrderAscending,
+			Limit:        4,
+			DateInterval: db.DateIntervalQuarter,
+		},
+	}
+
 	schema := newSchema("query_test")
 	withTestTable(b, schema, func(*csv.Reader) {
 		for i := 0; i < b.N; i++ {
 			if _, err := database.RunAnalysisQuery(
 				context.Background(),
-				testQuery,
+				query,
 				schema.TableName,
 			); err != nil {
 				b.Fatal(err)
 			}
 		}
-	})
-}
-
-func BenchmarkConcurrentQueries(b *testing.B) {
-	const concurrentQueries = 1024
-
-	schema := newSchema("concurrent_queries_test")
-	withTestTable(b, schema, func(*csv.Reader) {
-		// Divides by GOMAXPROCS, since SetParallelism multiplies its argument by GOMAXPROCS, and we
-		// want exactly concurrentQueries number of concurrent queries
-		b.SetParallelism(concurrentQueries / runtime.GOMAXPROCS(0))
-
-		b.RunParallel(func(pb *testing.PB) {
-			for pb.Next() {
-				if _, err := database.RunAnalysisQuery(
-					context.Background(),
-					testQuery,
-					schema.TableName,
-				); err != nil {
-					b.Fatal(err)
-				}
-			}
-		})
 	})
 }
 
