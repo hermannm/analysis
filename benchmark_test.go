@@ -107,10 +107,10 @@ func BenchmarkQuery(b *testing.B) {
 	})
 }
 
-func BenchmarkParallelQueries(b *testing.B) {
+func BenchmarkConcurrentQueries(b *testing.B) {
 	const concurrentQueries = 1024
 
-	schema := newSchema("parallel_queries_test")
+	schema := newSchema("concurrent_queries_test")
 	withTestTable(b, schema, func(*csv.Reader) {
 		// Divides by GOMAXPROCS, since SetParallelism multiplies its argument by GOMAXPROCS, and we
 		// want exactly concurrentQueries number of concurrent queries
