@@ -151,11 +151,11 @@ func newSchema(name string) db.TableSchema {
 
 func withTestTable(b *testing.B, schema db.TableSchema, testFunc func(*csv.Reader)) {
 	if err := database.CreateTable(context.Background(), schema); err != nil {
-		b.Fatal(wrap.Error(err, "failed to create table for data insertion test"))
+		b.Fatal(wrap.Errorf(err, "failed to create table '%s'", schema.TableName))
 	}
 	defer func() {
 		if _, err := database.DropTable(context.Background(), schema.TableName); err != nil {
-			b.Fatal(wrap.Error(err, "failed to clean up InsertDataTest table after test"))
+			b.Fatal(wrap.Errorf(err, "failed to clean up table '%s' after test", schema.TableName))
 		}
 	}()
 
