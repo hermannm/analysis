@@ -38,7 +38,7 @@ Certain files in the `api`, `clickhouse` and `elasticsearch` packages follow a c
 
 5. Set the `DATABASE` field in the `.env` file to either `clickhouse` or `elasticsearch`
 
-6. Start the database with [Docker](https://www.docker.com/products/docker-desktop/)
+6. Start the database with Docker (in the `analysis` directory):
 
    - For ClickHouse:
 
@@ -52,7 +52,7 @@ Certain files in the `api`, `clickhouse` and `elasticsearch` packages follow a c
      docker compose up elasticsearch
      ```
 
-7. Run the server:
+7. Run the server (in the `analysis` directory):
 
    ```
    go run .
