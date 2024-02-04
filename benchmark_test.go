@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"os"
 	"runtime"
-	"strconv"
 	"testing"
 
 	"hermannm.dev/analysis/config"
@@ -131,20 +130,18 @@ func BenchmarkConcurrentQueries(b *testing.B) {
 }
 
 func BenchmarkCreateTable(b *testing.B) {
+	schema := newSchema("create_table_test")
+
 	for i := 0; i < b.N; i++ {
-		schema := newSchema("create_table_test_" + strconv.Itoa(i))
 		if err := database.CreateTable(context.Background(), schema); err != nil {
 			b.Fatal(wrap.Errorf(err, "failed to create table no. %d", i))
 		}
-	}
 
-	b.StopTimer()
-
-	for i := 0; i < b.N; i++ {
-		tableName := "create_table_test_" + strconv.Itoa(i)
-		if _, err := database.DropTable(context.Background(), tableName); err != nil {
-			b.Fatal(wrap.Errorf(err, "failed to clean up table '%s' after test", tableName))
+		b.StopTimer()
+		if _, err := database.DropTable(context.Background(), schema.TableName); err != nil {
+			b.Fatal(wrap.Errorf(err, "failed to clean up table '%s'", schema.TableName))
 		}
+		b.StartTimer()
 	}
 }
 
