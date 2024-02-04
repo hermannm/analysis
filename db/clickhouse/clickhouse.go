@@ -49,6 +49,11 @@ func (clickhouse ClickHouseDB) DropTable(
 	var query QueryBuilder
 	query.WriteString("DROP TABLE ")
 	query.AddIdentifier(table)
+	// By default, ClickHouse drops tables asynchronously, waiting ~8 minutes before the data is
+	// actually dropped. Where we use DropTable, we want to drop the data immediately, so we use
+	// SYNC.
+	// See https://clickhouse.com/docs/en/sql-reference/statements/drop
+	query.WriteString(" SYNC")
 
 	// See https://github.com/ClickHouse/ClickHouse/blob/bd387f6d2c30f67f2822244c0648f2169adab4d3/src/Common/ErrorCodes.cpp#L66
 	const clickhouseUnknownTableErrorCode = 60
