@@ -297,7 +297,7 @@ func setResultValue(target db.DBValue, value any, dataType db.DataType) error {
 		if float, isFloat := value.(float64); isFloat {
 			// Elasticsearch stores dates as milliseconds since the Unix epoch:
 			// https://www.elastic.co/guide/en/elasticsearch/reference/8.10/date.html
-			value = time.UnixMilli(int64(float))
+			value = time.UnixMilli(int64(float)).UTC()
 		}
 	}
 
