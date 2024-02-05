@@ -11,7 +11,7 @@ Computer Science.
   while sharing common functionality
   - `clickhouse` implements `AnalysisDB` for [ClickHouse](https://clickhouse.com/docs/en/intro)
   - `elasticsearch` implements `AnalysisDB` for
-    [Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/8.10/elasticsearch-intro.html)
+    [Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html)
 - `csv` implements data type and field delimiter deduction for CSV files
 - `config` implements configuration parsing from environment variables
 
